@@ -1,4 +1,5 @@
 import { Hero } from "@/components/sections/Hero"
+import { BannerSlider } from "@/components/sections/BannerSlider"
 import { ValueProposition } from "@/components/sections/ValueProposition"
 import { Services } from "@/components/sections/Services"
 import { Statistics } from "@/components/sections/Statistics"
@@ -9,6 +10,7 @@ export function Landing() {
   return (
     <main className="relative">
       <Hero />
+      <BannerSlider />
       <ValueProposition />
       <Services showFilters={false} maxItems={4} />
       <Statistics />

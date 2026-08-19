@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react"
+import { defaultPortfolio } from "../utils/cmsDefaults"
 import {
   X,
   ChevronLeft,
@@ -215,14 +216,52 @@ const portfolioProjects = [
 
 export function PortfolioPage() {
   const [activeCategory, setActiveCategory] = useState("all")
+  const [portfolioList, setPortfolioList] = useState([])
+
+  useEffect(() => {
+    const saved = localStorage.getItem("cms_portfolio")
+    if (saved) {
+      setPortfolioList(JSON.parse(saved))
+    } else {
+      setPortfolioList(defaultPortfolio)
+      localStorage.setItem("cms_portfolio", JSON.stringify(defaultPortfolio))
+    }
+  }, [])
+
+  const activePortfolios = portfolioList
+    .filter((p) => p.status === "Published")
+    .map((p) => {
+      // Find matching item in portfolioProjects to get detailed fields like tags, gallery, fullDescription, client, year, result, height
+      const numericId = typeof p.id === 'string' ? parseInt(p.id.replace('port-', '')) : p.id;
+      const originalProject = portfolioProjects.find(
+        (dp) => dp.id === numericId || dp.title?.trim().toLowerCase() === p.title?.trim().toLowerCase()
+      ) || {};
+      
+      return {
+        tags: [],
+        gallery: [p.image || "https://picsum.photos/seed/terraport/1200/900"],
+        fullDescription: p.description || "",
+        client: "Klien Terra Tech",
+        year: new Date().getFullYear().toString(),
+        result: "Proyek diselesaikan dengan sukses dan memenuhi target.",
+        height: "medium",
+        ...originalProject,
+        ...p,
+        id: p.id,
+        title: p.title,
+        description: p.description,
+        image: p.image,
+        project_url: p.project_url
+      }
+    })
+
+  const filteredProjects = activePortfolios.filter(
+    (project) => activeCategory === "all" || project.category === activeCategory
+  )
   const [lightboxOpen, setLightboxOpen] = useState(false)
   const [lightboxProject, setLightboxProject] = useState(null)
   const [lightboxImageIndex, setLightboxImageIndex] = useState(0)
   const [ref, inView] = useInView({ threshold: 0.05, triggerOnce: true })
-
-  const filteredProjects = portfolioProjects.filter(
-    (p) => activeCategory === "all" || p.category === activeCategory
-  )
 
   useEffect(() => {
     if (lightboxOpen) {
@@ -251,15 +290,17 @@ export function PortfolioPage() {
 
   const nextImage = () => {
     if (!lightboxProject) return
+    const galleryLength = (lightboxProject.gallery || []).length || 1
     setLightboxImageIndex((i) =>
-      i >= lightboxProject.gallery.length - 1 ? 0 : i + 1
+      i >= galleryLength - 1 ? 0 : i + 1
     )
   }
 
   const prevImage = () => {
     if (!lightboxProject) return
+    const galleryLength = (lightboxProject.gallery || []).length || 1
     setLightboxImageIndex((i) =>
-      i <= 0 ? lightboxProject.gallery.length - 1 : i - 1
+      i <= 0 ? galleryLength - 1 : i - 1
     )
   }
 
@@ -357,7 +398,7 @@ export function PortfolioPage() {
                 </div>
                 <div className="absolute inset-x-0 bottom-0 p-5 md:p-6">
                   <div className="flex flex-wrap gap-1.5 mb-3">
-                    {project.tags.slice(0, 3).map((tag) => (
+                    {(project.tags || []).slice(0, 3).map((tag) => (
                       <span
                         key={tag}
                         className="inline-flex items-center rounded-full border border-dark-border/80 bg-dark-surface/60 backdrop-blur px-2.5 py-0.5 text-[11px] text-text-secondary"
@@ -445,7 +486,7 @@ export function PortfolioPage() {
             </button>
 
             <img
-              src={lightboxProject.gallery[lightboxImageIndex]}
+              src={(lightboxProject.gallery && lightboxProject.gallery[lightboxImageIndex]) || lightboxProject.image}
               alt={`${lightboxProject.title} - gambar ${lightboxImageIndex + 1}`}
               onClick={(e) => e.stopPropagation()}
               className={cn(
@@ -456,7 +497,7 @@ export function PortfolioPage() {
             />
 
             <div className="absolute bottom-5 left-1/2 -translate-x-1/2 flex items-center gap-2 z-20">
-              {lightboxProject.gallery.map((_, idx) => (
+              {(lightboxProject.gallery || []).map((_, idx) => (
                 <button
                   key={idx}
                   onClick={(e) => {
@@ -490,7 +531,7 @@ export function PortfolioPage() {
                 {lightboxProject.title}
               </h2>
               <p className="text-sm text-text-muted">
-                {lightboxImageIndex + 1} / {lightboxProject.gallery.length} foto
+                {lightboxImageIndex + 1} / {(lightboxProject.gallery || []).length} foto
               </p>
             </div>
 
@@ -528,7 +569,7 @@ export function PortfolioPage() {
                   Teknologi yang Digunakan
                 </h4>
                 <div className="flex flex-wrap gap-2">
-                  {lightboxProject.tags.map((tag) => (
+                  {(lightboxProject.tags || []).map((tag) => (
                     <span
                       key={tag}
                       className="inline-flex items-center rounded-full border border-dark-border bg-dark-base/40 px-3 py-1 text-xs font-medium text-text-secondary"

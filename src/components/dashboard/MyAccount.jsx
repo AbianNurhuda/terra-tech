@@ -97,18 +97,16 @@ export default function MyAccount({ showToast, onLogout }) {
     }
 
     // Get passwords map from local storage or initialize
-    let passwordsMap = {}
     const savedPasswords = localStorage.getItem("cms_user_passwords")
-    if (savedPasswords) {
-      passwordsMap = JSON.parse(savedPasswords)
-    } else {
-      // Default passwords
-      passwordsMap = {
-        "superadmin@terratech.com": "superadmin123",
-        "admin@terratech.com": "admin123",
-        "operator@terratech.com": "operator123",
-        "editor@terratech.com": "editor123"
-      }
+    const passwordsMap = savedPasswords
+      ? JSON.parse(savedPasswords)
+      : {
+          "superadmin@terratech.com": "superadmin123",
+          "admin@terratech.com": "admin123",
+          "operator@terratech.com": "operator123",
+          "editor@terratech.com": "editor123"
+        }
+    if (!savedPasswords) {
       localStorage.setItem("cms_user_passwords", JSON.stringify(passwordsMap))
     }
 

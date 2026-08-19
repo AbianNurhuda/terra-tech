@@ -2,6 +2,20 @@ import { useEffect, useState } from "react"
 import { Users, Trophy, Briefcase, Calendar } from "lucide-react"
 import { useInView } from "@/hooks/useInView"
 import { cn } from "@/utils/cn"
+import { defaultStatistics } from "../../utils/cmsDefaults"
+
+const iconMap = {
+  Users,
+  Trophy,
+  Briefcase,
+  Calendar
+}
+
+const parseStatValue = (valStr) => {
+  const num = parseInt(valStr.replace(/[^0-9]/g, ""), 10) || 0
+  const suffix = valStr.replace(/[0-9]/g, "")
+  return { num, suffix }
+}
 
 const stats = [
   {
@@ -65,6 +79,32 @@ function Counter({ value, suffix = "", trigger, duration = 1600 }) {
 
 export function Statistics() {
   const [ref, inView] = useInView({ threshold: 0.25, triggerOnce: true })
+  const [statsList, setStatsList] = useState([])
+
+  useEffect(() => {
+    const saved = localStorage.getItem("cms_statistics")
+    if (saved) {
+      setStatsList(JSON.parse(saved))
+    } else {
+      setStatsList(defaultStatistics)
+      localStorage.setItem("cms_statistics", JSON.stringify(defaultStatistics))
+    }
+  }, [])
+
+  const activeStats = statsList
+    .filter((s) => s.status === "Active")
+    .map((s) => {
+      const { num, suffix } = parseStatValue(s.value)
+      // Find matching default item to get description, or fallback
+      const originalDefault = defaultStatistics.find((ds) => ds.id === s.id) || { description: "" }
+      return {
+        icon: iconMap[s.icon] || Users,
+        value: num,
+        suffix: suffix,
+        label: s.title,
+        description: originalDefault.description || "Pencapaian Terra Tech"
+      }
+    })
 
   return (
     <section id="statistik" ref={ref} className="relative overflow-hidden py-24 md:py-28">
@@ -97,7 +137,7 @@ export function Statistics() {
         </div>
 
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-5 md:gap-6">
-          {stats.map((stat, i) => {
+          {activeStats.map((stat, i) => {
             const Icon = stat.icon
             return (
               <div

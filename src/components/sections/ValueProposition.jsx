@@ -1,6 +1,8 @@
+import { useState, useEffect } from "react"
 import { ShieldCheck, Clock, Award, BadgeDollarSign } from "lucide-react"
 import { useInView } from "@/hooks/useInView"
 import { cn } from "@/utils/cn"
+import { defaultAbout } from "../../utils/cmsDefaults"
 
 const values = [
   {
@@ -31,6 +33,18 @@ const values = [
 
 export function ValueProposition() {
   const [ref, inView] = useInView({ threshold: 0.1, triggerOnce: true })
+  const [about, setAbout] = useState(defaultAbout)
+
+  useEffect(() => {
+    const saved = localStorage.getItem("cms_about_company")
+    if (saved) {
+      setAbout(JSON.parse(saved))
+    } else {
+      localStorage.setItem("cms_about_company", JSON.stringify(defaultAbout))
+    }
+  }, [])
+
+  if (about.status !== "Published") return null
 
   return (
     <section id="keunggulan" ref={ref} className="relative section-container">
@@ -47,14 +61,13 @@ export function ValueProposition() {
             inView ? "animate-fade-up" : "opacity-0"
           )}
           style={{ animationDelay: "160ms" }}
-        >
-          Keunggulan <span className="glow-text">Terra Tech</span>
-        </h2>
+          dangerouslySetInnerHTML={{ __html: about.title }}
+        />
         <p
           className={cn("section-subtitle mx-auto text-center", inView ? "animate-fade-up" : "opacity-0")}
           style={{ animationDelay: "220ms" }}
         >
-          Kami bukan sekadar vendor, melainkan mitra strategis yang akan membawa bisnis Anda melampaui batasan melalui inovasi teknologi.
+          {about.description}
         </p>
       </div>
 
@@ -91,6 +104,45 @@ export function ValueProposition() {
             </div>
           )
         })}
+      </div>
+
+      {/* Vision & Mission Row with image */}
+      <div
+        className={cn(
+          "mt-20 grid grid-cols-1 lg:grid-cols-12 gap-10 items-center border-t border-dark-border/40 pt-16 text-left",
+          inView ? "animate-fade-up" : "opacity-0"
+        )}
+        style={{ animationDelay: "600ms" }}
+      >
+        <div className="lg:col-span-5 h-[320px] rounded-3xl overflow-hidden border border-dark-border shadow-lg relative bg-dark-base">
+          <img
+            src={about.image}
+            alt="Terra Tech"
+            className="w-full h-full object-cover"
+            loading="lazy"
+            onError={(e) => {
+              e.target.onerror = null
+              e.target.src = "https://placehold.co/600x400/27272a/a1a1aa?text=Terra+Tech"
+            }}
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-dark-surface/60 to-transparent" />
+        </div>
+        <div className="lg:col-span-7 space-y-6">
+          <div className="card-surface p-7 bg-white/40 border-dark-border/50">
+            <h3 className="text-xl font-bold text-text-primary font-display flex items-center gap-2 mb-3">
+              <span className="h-2 w-2 rounded-full bg-accent-cyan" />
+              Visi Kami
+            </h3>
+            <p className="text-text-secondary leading-relaxed text-sm">{about.vision}</p>
+          </div>
+          <div className="card-surface p-7 bg-white/40 border-dark-border/50">
+            <h3 className="text-xl font-bold text-text-primary font-display flex items-center gap-2 mb-3">
+              <span className="h-2 w-2 rounded-full bg-accent-purple" />
+              Misi Kami
+            </h3>
+            <p className="text-text-secondary leading-relaxed text-sm">{about.mission}</p>
+          </div>
+        </div>
       </div>
     </section>
   )

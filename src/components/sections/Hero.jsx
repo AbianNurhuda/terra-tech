@@ -1,10 +1,24 @@
+import { useState, useEffect } from "react"
 import { ArrowRight, Play } from "lucide-react"
 import { Button } from "@/components/ui/Button"
 import { useInView } from "@/hooks/useInView"
 import { cn } from "@/utils/cn"
+import { defaultHero } from "../../utils/cmsDefaults"
 
 export function Hero() {
   const [ref, inView] = useInView({ threshold: 0.1, triggerOnce: true })
+  const [hero, setHero] = useState(defaultHero)
+
+  useEffect(() => {
+    const saved = localStorage.getItem("cms_hero")
+    if (saved) {
+      setHero(JSON.parse(saved))
+    } else {
+      localStorage.setItem("cms_hero", JSON.stringify(defaultHero))
+    }
+  }, [])
+
+  if (hero.status !== "Published") return null
 
   return (
     <section
@@ -38,7 +52,7 @@ export function Hero() {
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent-cyan opacity-75" />
               <span className="relative inline-flex rounded-full h-2 w-2 bg-accent-cyan" />
             </span>
-            Tersedia untuk proyek baru 2026
+            {hero.subtitle}
           </div>
 
           <div className="space-y-5">
@@ -48,10 +62,8 @@ export function Hero() {
                 inView ? "animate-fade-up" : "opacity-0"
               )}
               style={{ animationDelay: "160ms" }}
-            >
-              Bangun Solusi Digital{" "}
-              <span className="glow-text">Terpercaya</span> untuk Bisnis Masa Depan
-            </h1>
+              dangerouslySetInnerHTML={{ __html: hero.title }}
+            />
             <p
               className={cn(
                 "text-lg md:text-xl text-text-secondary max-w-xl mx-auto lg:mx-0 leading-relaxed",
@@ -59,7 +71,7 @@ export function Hero() {
               )}
               style={{ animationDelay: "240ms" }}
             >
-              Terra Tech membantu perusahaan transformasi digital dengan layanan pengembangan web, aplikasi mobile, desain UI/UX, dan konsultasi IT berkualitas enterprise.
+              {hero.description}
             </p>
           </div>
 
@@ -70,9 +82,9 @@ export function Hero() {
             )}
             style={{ animationDelay: "320ms" }}
           >
-            <a href="#layanan" className="w-full sm:w-auto">
+            <a href={hero.button_link} className="w-full sm:w-auto">
               <Button size="lg" className="w-full sm:w-auto">
-                Mulai Proyek Anda
+                {hero.button_text}
                 <ArrowRight className="h-5 w-5" strokeWidth={2.25} />
               </Button>
             </a>
@@ -126,7 +138,7 @@ export function Hero() {
             <div className="absolute -inset-6 rounded-[2rem] bg-gradient-to-br from-accent-cyan/25 via-accent-purple/15 to-transparent blur-2xl" />
             <div className="relative h-full w-full card-surface overflow-hidden animate-float shadow-[0_20px_60px_rgba(37,99,235,0.15)] border border-accent-cyan/15">
               <img
-                src="https://picsum.photos/seed/terrahero/1000/1250"
+                src={hero.image}
                 alt="Tim Terra Tech bekerja"
                 className="h-full w-full object-cover"
                 loading="lazy"

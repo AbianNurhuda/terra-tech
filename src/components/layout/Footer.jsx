@@ -1,6 +1,8 @@
+import { useState, useEffect } from "react"
 import { Sparkles, Mail, Phone, MapPin } from "lucide-react"
 import { Link } from "react-router-dom"
 import { cn } from "@/utils/cn"
+import { defaultFooter } from "../../utils/cmsDefaults"
 
 const IconGithub = (props) => (
   <svg viewBox="0 0 24 24" fill="currentColor" {...props}>
@@ -26,43 +28,67 @@ const IconInstagram = (props) => (
   </svg>
 )
 
-const footerLinks = [
-  {
-    title: "Navigasi",
-    items: [
-      { label: "Beranda", to: "/" },
-      { label: "Layanan / Produk", to: "/layanan" },
-      { label: "Portofolio", to: "/portofolio" },
-      { label: "Kontak", to: "/kontak" },
-    ],
-  },
-  {
-    title: "Layanan",
-    items: [
-      { label: "Web Development", to: "/layanan" },
-      { label: "Mobile App", to: "/layanan" },
-      { label: "UI / UX Design", to: "/layanan" },
-      { label: "IT Consulting", to: "/layanan" },
-    ],
-  },
-  {
-    title: "Kontak",
-    items: [
-      { label: "hello@terratech.id", href: "mailto:hello@terratech.id", icon: Mail },
-      { label: "+62 812 3456 7890", href: "tel:+6281234567890", icon: Phone },
-      { label: "Jakarta, Indonesia", href: "#", icon: MapPin },
-    ],
-  },
-]
-
 const socialLinks = [
-  { label: "GitHub", href: "#", icon: IconGithub },
-  { label: "X / Twitter", href: "#", icon: IconX },
-  { label: "LinkedIn", href: "#", icon: IconLinkedin },
-  { label: "Instagram", href: "#", icon: IconInstagram },
+  { label: "GitHub", icon: IconGithub },
+  { label: "X / Twitter", icon: IconX },
+  { label: "LinkedIn", icon: IconLinkedin },
+  { label: "Instagram", icon: IconInstagram },
 ]
 
 export function Footer() {
+  const [footer, setFooter] = useState(defaultFooter)
+
+  useEffect(() => {
+    const saved = localStorage.getItem("cms_footer")
+    if (saved) {
+      setFooter(JSON.parse(saved))
+    } else {
+      setFooter(defaultFooter)
+      localStorage.setItem("cms_footer", JSON.stringify(defaultFooter))
+    }
+  }, [])
+
+  const dynamicFooterLinks = [
+    {
+      title: "Navigasi",
+      items: [
+        { label: "Beranda", to: "/" },
+        { label: "Layanan / Produk", to: "/layanan" },
+        { label: "Portofolio", to: "/portofolio" },
+        { label: "Kontak", to: "/kontak" },
+      ],
+    },
+    {
+      title: "Layanan",
+      items: [
+        { label: "Web Development", to: "/layanan" },
+        { label: "Mobile App", to: "/layanan" },
+        { label: "UI / UX Design", to: "/layanan" },
+        { label: "IT Consulting", to: "/layanan" },
+      ],
+    },
+    {
+      title: "Kontak",
+      items: [
+        { label: footer.email, href: `mailto:${footer.email}`, icon: Mail },
+        { label: footer.phone, href: `tel:${footer.phone.replace(/[^0-9+]/g, "")}`, icon: Phone },
+        { label: footer.address, href: "#", icon: MapPin },
+      ],
+    },
+  ]
+
+  const dynamicSocialLinks = socialLinks.map((link) => {
+    const found = footer.social_media.find(
+      (sm) =>
+        sm.label.toLowerCase().includes(link.label.toLowerCase().split(" ")[0]) ||
+        link.label.toLowerCase().includes(sm.label.toLowerCase())
+    )
+    return {
+      ...link,
+      href: found ? found.href : "#",
+    }
+  })
+
   return (
     <footer className="relative border-t border-dark-border bg-dark-surface">
       <div className="absolute inset-x-0 -top-px h-px bg-gradient-to-r from-transparent via-accent-cyan/60 to-transparent" />
@@ -81,11 +107,13 @@ export function Footer() {
               Solusi digital terintegrasi untuk memajukan bisnis Anda. Dari pengembangan website, aplikasi mobile, hingga desain dan konsultasi IT.
             </p>
             <div className="flex items-center gap-3">
-              {socialLinks.map(({ label, href, icon: Icon }) => (
+              {dynamicSocialLinks.map(({ label, href, icon: Icon }) => (
                 <a
                   key={label}
                   href={href}
                   aria-label={label}
+                  target="_blank"
+                  rel="noreferrer"
                   className={cn(
                     "h-10 w-10 inline-flex items-center justify-center rounded-xl",
                     "border border-dark-border text-text-secondary",
@@ -99,7 +127,7 @@ export function Footer() {
             </div>
           </div>
 
-          {footerLinks.map((group) => (
+          {dynamicFooterLinks.map((group) => (
             <div key={group.title}>
               <h4 className="font-display font-semibold text-text-primary mb-5">
                 {group.title}
@@ -136,7 +164,7 @@ export function Footer() {
 
         <div className="mt-16 pt-8 border-t border-dark-border/70 flex flex-col md:flex-row items-center justify-between gap-4">
           <p className="text-sm text-text-muted">
-            © {new Date().getFullYear()} Terra Tech. All rights reserved.
+            © {new Date().getFullYear()} {footer.copyright}
           </p>
           <div className="flex items-center gap-6 text-sm text-text-muted">
             <a href="#" className="hover:text-text-secondary transition-colors">

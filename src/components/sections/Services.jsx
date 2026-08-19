@@ -1,10 +1,20 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { ArrowUpRight, Code2, Smartphone, Palette, HeadphonesIcon, Database, Cloud, CheckCircle2 } from "lucide-react"
 import { Link } from "react-router-dom"
 import { Card, CardContent } from "@/components/ui/Card"
 import { Button } from "@/components/ui/Button"
 import { useInView } from "@/hooks/useInView"
 import { cn } from "@/utils/cn"
+import { defaultServices } from "../../utils/cmsDefaults"
+
+const iconMap = {
+  Code2,
+  Smartphone,
+  Palette,
+  HeadphonesIcon,
+  Database,
+  Cloud
+}
 
 export const serviceCategories = [
   { id: "all", label: "Semua" },
@@ -235,8 +245,36 @@ export const servicesData = [
 export function Services({ showFilters = true, maxItems = null }) {
   const [ref, inView] = useInView({ threshold: 0.08, triggerOnce: true })
   const [activeCategory, setActiveCategory] = useState("all")
+  const [servicesList, setServicesList] = useState([])
 
-  const filteredServices = servicesData.filter(
+  useEffect(() => {
+    const saved = localStorage.getItem("cms_services")
+    if (saved) {
+      setServicesList(JSON.parse(saved))
+    } else {
+      setServicesList(defaultServices)
+      localStorage.setItem("cms_services", JSON.stringify(defaultServices))
+    }
+  }, [])
+
+  const activeServices = servicesList
+    .filter((s) => s.status === "Published")
+    .map((s) => {
+      let normalizedId = s.id
+      if (s.id === "mobile-development") normalizedId = "mobile-app-development"
+      if (s.id === "uiux-design") normalizedId = "ui-ux-design"
+      
+      const originalDefault = servicesData.find((ds) => ds.id === normalizedId) || servicesData[0]
+      return {
+        ...originalDefault,
+        ...s,
+        id: normalizedId,
+        title: s.name,
+        icon: iconMap[s.icon] || Code2
+      }
+    })
+
+  const filteredServices = activeServices.filter(
     (svc) => activeCategory === "all" || svc.category === activeCategory
   )
 
@@ -352,7 +390,7 @@ export function Services({ showFilters = true, maxItems = null }) {
                 </p>
 
                 <ul className="space-y-2.5">
-                  {svc.features.slice(0, 4).map((feat, idx) => (
+                  {svc.features && svc.features.slice(0, 4).map((feat, idx) => (
                     <li key={idx} className="flex items-start gap-2.5 text-sm text-text-secondary">
                       <CheckCircle2 className="h-4.5 w-4.5 text-accent-cyan shrink-0 mt-0.5" strokeWidth={2.25} />
                       <span className="leading-relaxed">{feat}</span>

@@ -1,17 +1,140 @@
-# React + Vite
+# 🚀 Terra Tech Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Website perusahaan teknologi yang modern, responsif, dan user-friendly dibangun dengan React dan Vite.
 
-Currently, two official plugins are available:
+---
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## 📋 Daftar Teknologi
 
-## React Compiler
+### Core Frontend
+| Teknologi | Versi | Deskripsi |
+|-----------|-------|----------|
+| **React** | 19.2.8 | Library JavaScript untuk membangun UI interaktif |
+| **React DOM** | 19.2.8 | Library untuk rendering React ke DOM |
+| **React Router** | 7.18.2 | Client-side routing untuk navigasi antar halaman |
+| **Vite** | 8.2.0 | Build tool modern dan lightning-fast |
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+### Styling & UI
+| Teknologi | Versi | Deskripsi |
+|-----------|-------|----------|
+| **Tailwind CSS** | 3.4.17 | Utility-first CSS framework untuk styling responsif |
+| **PostCSS** | 8.5.25 | Tool untuk transformasi CSS |
+| **Autoprefixer** | 10.5.4 | Plugin PostCSS untuk vendor prefixes |
+| **Tailwind Merge** | 3.6.0 | Utility untuk merge Tailwind classes |
+| **Tailwind Animate** | 1.0.7 | Plugin untuk animasi Tailwind |
+| **Class Variance Authority** | 0.7.1 | Library untuk component variants |
+| **clsx** | 2.1.1 | Utility untuk conditional CSS classes |
 
-## Expanding the ESLint configuration
+### Components & UI Elements
+| Teknologi | Versi | Deskripsi |
+|-----------|-------|----------|
+| **Lucide React** | 0.453.0 | Icon library modern dengan React |
+| **Embla Carousel React** | 8.6.0 | Carousel/slider component yang accessible |
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
-"# terra-tech" 
+### Development Tools
+| Teknologi | Versi | Deskripsi |
+|-----------|-------|----------|
+| **ESLint** | 10.8.0 | Linter untuk code quality |
+| **@vitejs/plugin-react** | 6.0.4 | Vite plugin untuk React dengan Oxc |
+| **React Refresh** | 0.5.3 | Fast refresh untuk development |
+
+---
+
+## 🎯 Fitur Utama
+
+- ✅ Landing page dengan hero section
+- ✅ Halaman layanan dengan filter dan detail
+- ✅ Portfolio showcase
+- ✅ Contact form
+- ✅ User authentication & login
+- ✅ Admin dashboard dengan manajemen:
+  - Pengguna
+  - Dokumen
+  - Pengumuman
+  - Profil perusahaan
+  - Timeline
+  - Alur registrasi
+
+---
+
+## 🚀 Quick Start
+
+### Prerequisites
+- Node.js 18+ 
+- npm atau yarn
+
+### Installation
+```bash
+# Install dependencies
+npm install
+
+# Development server
+npm run dev
+
+# Build untuk production
+npm run build
+
+# Preview production build
+npm run preview
+
+# Lint code
+npm run lint
+```
+
+---
+
+## 📁 Project Structure
+
+```
+src/
+├── components/
+│   ├── layout/          # Navbar, Footer
+│   ├── sections/        # Landing page sections
+│   ├── ui/              # Reusable UI components
+│   ├── dashboard/       # Admin dashboard features
+│   ├── BackToTop.jsx
+│   └── ScrollToTop.jsx
+├── pages/               # Page components
+├── services/            # API services
+├── hooks/               # Custom React hooks
+├── utils/               # Utility functions
+├── assets/              # Static assets
+├── api/                 # API client configuration
+├── data/                # Data files
+├── App.jsx
+├── main.jsx
+├── index.css
+└── App.css
+```
+
+---
+
+## 🛣️ Routes
+
+| Route | Halaman |
+|-------|---------|
+| `/` | Landing page |
+| `/layanan` | Daftar layanan |
+| `/layanan/:serviceId` | Detail layanan |
+| `/portofolio` | Portfolio showcase |
+| `/kontak` | Contact form |
+| `/login` | Login |
+| `/dashboard` | User dashboard |
+
+---
+
+## 🎨 Styling
+
+Proyek ini menggunakan **Tailwind CSS** dengan utility-first approach untuk styling yang konsisten dan responsif. Konfigurasi dapat ditemukan di `tailwind.config.js`.
+
+---
+
+## 📝 License
+
+Project ini adalah proprietary software milik Terra Tech.
+
+---
+
+## 📧 Contact
+
+Untuk pertanyaan atau feedback, hubungi tim development Terra Tech. 

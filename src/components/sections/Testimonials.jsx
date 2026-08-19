@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/Carousel"
 import { useInView } from "@/hooks/useInView"
 import { cn } from "@/utils/cn"
+import { defaultTestimonials } from "../../utils/cmsDefaults"
 
 const testimonials = [
   {
@@ -73,7 +74,34 @@ function StarRating({ count = 5 }) {
 
 export function Testimonials() {
   const [ref, inView] = useInView({ threshold: 0.1, triggerOnce: true })
+  const [testimonialsList, setTestimonialsList] = React.useState([])
   const [api, setApi] = React.useState(null)
+
+  React.useEffect(() => {
+    const saved = localStorage.getItem("cms_testimonials")
+    if (saved) {
+      setTestimonialsList(JSON.parse(saved))
+    } else {
+      setTestimonialsList(defaultTestimonials)
+      localStorage.setItem("cms_testimonials", JSON.stringify(defaultTestimonials))
+    }
+  }, [])
+
+  const activeTestimonials = testimonialsList
+    .filter((t) => t.status === "Published")
+    .map((t, idx) => {
+      // Find matching default item to get rating & accent or generate
+      const originalDefault = defaultTestimonials.find((dt) => dt.id === t.id) || { rating: 5, accent: "border-accent-cyan/40" }
+      const accents = ["border-accent-cyan/40", "border-accent-purple/40", "border-emerald-500/40", "border-amber-500/40", "border-sky-500/40"]
+      return {
+        name: t.customer_name,
+        title: t.position,
+        avatar: t.image,
+        content: t.testimonial,
+        rating: originalDefault.rating || 5,
+        accent: originalDefault.accent || accents[idx % accents.length]
+      }
+    })
 
   React.useEffect(() => {
     if (!api) return
@@ -127,7 +155,7 @@ export function Testimonials() {
           className="w-full"
         >
           <CarouselContent className="-ml-2 md:-ml-4">
-            {testimonials.map((t, i) => (
+            {activeTestimonials.map((t, i) => (
               <CarouselItem
                 key={i}
                 className="pl-2 md:pl-4 md:basis-1/2 xl:basis-1/2"

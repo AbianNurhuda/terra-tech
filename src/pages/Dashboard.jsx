@@ -45,6 +45,7 @@ import DocumentManagement from "@/components/dashboard/DocumentManagement"
 import DocumentCategoriesManagement from "@/components/dashboard/DocumentCategoriesManagement"
 import RegistrationFlowManagement from "@/components/dashboard/RegistrationFlowManagement"
 import MyAccount from "@/components/dashboard/MyAccount"
+import CmsLandingPage from "@/components/dashboard/CmsLandingPage"
 
 export function DashboardPage() {
   const navigate = useNavigate()
@@ -74,6 +75,7 @@ export function DashboardPage() {
 
   const [dashboardLoading, setDashboardLoading] = useState(true)
   const [dashboardError, setDashboardError] = useState("")
+  const [dashboardEmpty, setDashboardEmpty] = useState(false)
   const [activities, setActivities] = useState({})
   const [draftsCount, setDraftsCount] = useState({
     information: 0,
@@ -128,52 +130,55 @@ export function DashboardPage() {
     }
   }, [navigate])
 
+  const fetchDashboardData = async () => {
+    setDashboardLoading(true)
+    setDashboardError("")
+    setDashboardEmpty(false)
+    try {
+      const res = await dashboardService.getDashboard()
+      if (res.success && res.data) {
+        const d = res.data
+        const isEmpty = !d || (!d.stats && !d.activity && !d.drafts);
+        setDashboardEmpty(isEmpty)
+        setMetrics({
+          totalUsers: d.stats?.total_users ?? 0,
+          activeRoles: 4,
+          systemStatus: d.system_health?.status || "Online & Stabil",
+          cmsVersion: "v1.4.0-build.2026",
+          totalArticles: d.stats?.total_information ?? 0,
+          totalAnnouncements: d.stats?.total_announcements ?? 0,
+          totalTimelines: d.stats?.total_timelines ?? 0,
+          totalFiles: d.stats?.total_files ?? 0,
+          totalRegistrationSteps: d.stats?.total_registration_steps ?? 0,
+          totalFileDownloads: d.stats?.total_file_downloads ?? 0,
+          totalAnnDownloads: d.stats?.total_announcement_downloads ?? 0
+        })
+
+        if (d.drafts) {
+          setDraftsCount(d.drafts)
+        }
+
+        if (d.activity) {
+          setActivities(d.activity)
+        }
+
+        if (d.system_health) {
+          setSystemHealth(d.system_health)
+        }
+      } else {
+        setDashboardError(res.message || "Terjadi kesalahan. Silakan coba lagi.")
+      }
+    } catch (err) {
+      console.error(err)
+      setDashboardError("Terjadi kesalahan. Silakan coba lagi.")
+    } finally {
+      setDashboardLoading(false)
+    }
+  }
+
   // Fetch real-time dashboard data from REST API
   useEffect(() => {
     if (!role) return
-
-    const fetchDashboardData = async () => {
-      setDashboardLoading(true)
-      setDashboardError("")
-      try {
-        const res = await dashboardService.getDashboard()
-        if (res.success && res.data) {
-          const d = res.data
-          setMetrics({
-            totalUsers: d.stats?.total_users ?? 0,
-            activeRoles: 4,
-            systemStatus: d.system_health?.status || "Online & Stabil",
-            cmsVersion: "v1.4.0-build.2026",
-            totalArticles: d.stats?.total_information ?? 0,
-            totalAnnouncements: d.stats?.total_announcements ?? 0,
-            totalTimelines: d.stats?.total_timelines ?? 0,
-            totalFiles: d.stats?.total_files ?? 0,
-            totalRegistrationSteps: d.stats?.total_registration_steps ?? 0,
-            totalFileDownloads: d.stats?.total_file_downloads ?? 0,
-            totalAnnDownloads: d.stats?.total_announcement_downloads ?? 0
-          })
-
-          if (d.drafts) {
-            setDraftsCount(d.drafts)
-          }
-
-          if (d.activity) {
-            setActivities(d.activity)
-          }
-
-          if (d.system_health) {
-            setSystemHealth(d.system_health)
-          }
-        } else {
-          setDashboardError(res.message || "Gagal memuat data dashboard.")
-        }
-      } catch (err) {
-        console.error(err)
-        setDashboardError("Terjadi kesalahan koneksi saat memuat dashboard.")
-      } finally {
-        setDashboardLoading(false)
-      }
-    }
 
     if (activeTab === "Ringkasan" || activeTab === "Dashboard Operasional") {
       fetchDashboardData()
@@ -329,6 +334,7 @@ export function DashboardPage() {
           { name: "Timeline & Milestone", icon: Calendar },
           { name: "Dokumen & File", icon: FolderOpen },
           { name: "Kategori Dokumen", icon: Tags, isUnavailable: true },
+          { name: "CMS Halaman Utama", icon: BookOpen }
         ]
       case "admin":
         return [
@@ -340,6 +346,7 @@ export function DashboardPage() {
           { name: "Manajemen Dokumen File", icon: FolderOpen },
           { name: "Manajemen Kategori File", icon: Tags, isUnavailable: true },
           { name: "Manajemen Alur Pendaftaran", icon: Layers },
+          { name: "CMS Halaman Utama", icon: BookOpen },
           { name: "Akun Saya", icon: User },
         ]
       case "operator":
@@ -351,6 +358,7 @@ export function DashboardPage() {
           { name: "Manajemen Timeline", icon: Calendar },
           { name: "Manajemen Dokumen File", icon: FolderOpen },
           { name: "Manajemen Alur Pendaftaran", icon: Layers },
+          { name: "CMS Halaman Utama", icon: BookOpen }
         ]
       case "editor":
         return [
@@ -361,6 +369,7 @@ export function DashboardPage() {
           { name: "Manajemen Dokumen File", icon: FolderOpen },
           { name: "Manajemen Kategori File", icon: Tags, isUnavailable: true },
           { name: "Manajemen Alur Pendaftaran", icon: Layers },
+          { name: "CMS Halaman Utama", icon: BookOpen }
         ]
       default:
         return common
@@ -376,7 +385,7 @@ export function DashboardPage() {
         <div>
           <h3 className="font-display font-bold text-sm text-text-primary">Modul {title}</h3>
           <p className="text-[11px] text-text-secondary mt-1.5 max-w-sm leading-relaxed">
-            Modul ini belum terintegrasi dengan REST API backend. Fitur ini akan segera tersedia setelah backend merilis endpoint API yang bersesuaian.
+            Fitur belum tersedia di API backend.
           </p>
         </div>
       </div>
@@ -646,7 +655,7 @@ export function DashboardPage() {
             dashboardLoading ? (
               <div className="flex flex-col items-center justify-center py-20 space-y-4 min-h-[60vh] w-full">
                 <div className="h-8 w-8 border-4 border-accent-cyan border-t-transparent rounded-full animate-spin" />
-                <span className="text-xs text-text-secondary font-bold animate-pulse">Memuat data dashboard...</span>
+                <span className="text-xs text-text-secondary font-bold animate-pulse">Memuat data...</span>
               </div>
             ) : dashboardError ? (
               <div className="flex flex-col items-center justify-center py-20 text-center space-y-4 card-surface p-6 bg-white min-h-[60vh] w-full">
@@ -654,15 +663,26 @@ export function DashboardPage() {
                   <AlertCircle className="h-6 w-6" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-sm text-text-primary">Gagal Memuat Dashboard</h3>
-                  <p className="text-xs text-text-secondary mt-1">{dashboardError}</p>
+                  <h3 className="font-bold text-sm text-text-primary">Terjadi kesalahan. Silakan coba lagi.</h3>
+                  <p className="text-xs text-text-secondary mt-1">{dashboardError !== "Terjadi kesalahan. Silakan coba lagi." && dashboardError}</p>
                 </div>
                 <button
-                  onClick={() => {
-                    const currentTab = activeTab
-                    setActiveTab(currentTab === "Ringkasan" ? "Dashboard Operasional" : "Ringkasan")
-                    setTimeout(() => setActiveTab(currentTab), 50)
-                  }}
+                  onClick={fetchDashboardData}
+                  className="px-4 py-2 bg-accent-cyan text-white text-xs font-bold rounded-xl hover:bg-accent-cyan/90 transition-colors"
+                >
+                  Coba Lagi
+                </button>
+              </div>
+            ) : dashboardEmpty ? (
+              <div className="flex flex-col items-center justify-center py-20 text-center space-y-4 card-surface p-6 bg-white min-h-[60vh] w-full">
+                <div className="h-12 w-12 rounded-xl bg-gray-50 border border-gray-100 flex items-center justify-center text-gray-400">
+                  <Inbox className="h-6 w-6" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-sm text-text-primary">Belum ada data.</h3>
+                </div>
+                <button
+                  onClick={fetchDashboardData}
                   className="px-4 py-2 bg-accent-cyan text-white text-xs font-bold rounded-xl hover:bg-accent-cyan/90 transition-colors"
                 >
                   Coba Lagi
@@ -1081,7 +1101,9 @@ export function DashboardPage() {
                 </div>
               </div>
             </div>
-          ) ) : role === "super_admin" ? (
+          ) ) : activeTab === "CMS Halaman Utama" ? (
+            <CmsLandingPage role={role} showToast={showToast} />
+          ) : role === "super_admin" ? (
             /* Render active tab for Super Admin */
             <div className="card-surface p-6 md:p-8 bg-white min-h-[60vh] animate-fade-in">
               {activeTab === "Kelola Pengguna" && renderComingSoon("Kelola Pengguna")}
@@ -1105,12 +1127,12 @@ export function DashboardPage() {
               {activeTab === "Akun Saya" && <MyAccount showToast={showToast} onLogout={handleLogout} />}
             </div>
           ) : role === "operator" ? (
-            /* Render active tab for Operator (Read/Write for managed views, readOnly for Lihat Informasi & Alur Pendaftaran) */
+            /* Render active tab for Operator (Read Only for all views) */
             <div className="card-surface p-6 md:p-8 bg-white min-h-[60vh] animate-fade-in">
               {activeTab === "Lihat Informasi" && <InformationManagement showToast={showToast} readOnly={true} />}
-              {activeTab === "Manajemen Pengumuman" && <AnnouncementsManagement showToast={showToast} readOnly={false} />}
-              {activeTab === "Manajemen Timeline" && <TimelineManagement showToast={showToast} readOnly={false} />}
-              {activeTab === "Manajemen Dokumen File" && <DocumentManagement showToast={showToast} readOnly={false} />}
+              {activeTab === "Manajemen Pengumuman" && <AnnouncementsManagement showToast={showToast} readOnly={true} />}
+              {activeTab === "Manajemen Timeline" && <TimelineManagement showToast={showToast} readOnly={true} />}
+              {activeTab === "Manajemen Dokumen File" && <DocumentManagement showToast={showToast} readOnly={true} />}
               {activeTab === "Manajemen Alur Pendaftaran" && <RegistrationFlowManagement showToast={showToast} readOnly={true} />}
             </div>
           ) : (
