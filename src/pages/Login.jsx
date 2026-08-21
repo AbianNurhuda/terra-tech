@@ -30,8 +30,9 @@ export function LoginPage() {
     setError("")
     try {
       const res = await authService.login(loginEmail, loginPassword)
-      if (res.success && res.data && res.data.token) {
-        localStorage.setItem("api_token", res.data.token)
+      const token = res.data?.token || res.data?.access_token || res.data?.api_token
+      if (res.success && token) {
+        localStorage.setItem("api_token", token)
 
         const profileRes = await authService.refreshCurrentUser()
         if (profileRes.success) {

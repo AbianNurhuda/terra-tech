@@ -327,24 +327,24 @@ export function DashboardPage() {
       case "super_admin":
         return [
           { name: "Ringkasan", icon: Home },
-          { name: "Kelola Pengguna", icon: Users, isUnavailable: true },
-          { name: "Profil Perusahaan", icon: Building2, isUnavailable: true },
+          { name: "Kelola Pengguna", icon: Users },
+          { name: "Profil Perusahaan", icon: Building2 },
           { name: "Informasi Perusahaan", icon: FileEdit },
           { name: "Pengumuman Staf", icon: Megaphone },
           { name: "Timeline & Milestone", icon: Calendar },
           { name: "Dokumen & File", icon: FolderOpen },
-          { name: "Kategori Dokumen", icon: Tags, isUnavailable: true },
+          { name: "Kategori Dokumen", icon: Tags },
           { name: "CMS Halaman Utama", icon: BookOpen }
         ]
       case "admin":
         return [
           { name: "Dashboard Operasional", icon: Home },
-          { name: "Profil Perusahaan", icon: Building2, isUnavailable: true },
+          { name: "Profil Perusahaan", icon: Building2 },
           { name: "Manajemen Informasi", icon: FileEdit },
           { name: "Manajemen Pengumuman", icon: Megaphone },
           { name: "Manajemen Timeline", icon: Calendar },
           { name: "Manajemen Dokumen File", icon: FolderOpen },
-          { name: "Manajemen Kategori File", icon: Tags, isUnavailable: true },
+          { name: "Manajemen Kategori File", icon: Tags },
           { name: "Manajemen Alur Pendaftaran", icon: Layers },
           { name: "CMS Halaman Utama", icon: BookOpen },
           { name: "Akun Saya", icon: User },
@@ -367,7 +367,7 @@ export function DashboardPage() {
           { name: "Manajemen Pengumuman", icon: Megaphone },
           { name: "Manajemen Timeline", icon: Calendar },
           { name: "Manajemen Dokumen File", icon: FolderOpen },
-          { name: "Manajemen Kategori File", icon: Tags, isUnavailable: true },
+          { name: "Manajemen Kategori File", icon: Tags },
           { name: "Manajemen Alur Pendaftaran", icon: Layers },
           { name: "CMS Halaman Utama", icon: BookOpen }
         ]
@@ -1106,23 +1106,23 @@ export function DashboardPage() {
           ) : role === "super_admin" ? (
             /* Render active tab for Super Admin */
             <div className="card-surface p-6 md:p-8 bg-white min-h-[60vh] animate-fade-in">
-              {activeTab === "Kelola Pengguna" && renderComingSoon("Kelola Pengguna")}
-              {activeTab === "Profil Perusahaan" && renderComingSoon("Profil Perusahaan")}
+              {activeTab === "Kelola Pengguna" && <UsersManagement showToast={showToast} />}
+              {activeTab === "Profil Perusahaan" && <CompanyProfileConfig showToast={showToast} />}
               {activeTab === "Informasi Perusahaan" && <InformationManagement showToast={showToast} />}
               {activeTab === "Pengumuman Staf" && <AnnouncementsManagement showToast={showToast} />}
               {activeTab === "Timeline & Milestone" && <TimelineManagement showToast={showToast} />}
               {activeTab === "Dokumen & File" && <DocumentManagement showToast={showToast} />}
-              {activeTab === "Kategori Dokumen" && renderComingSoon("Kategori Dokumen")}
+              {activeTab === "Kategori Dokumen" && <DocumentCategoriesManagement showToast={showToast} />}
             </div>
           ) : role === "admin" || role === "editor" ? (
             /* Render active tab for Admin and Editor */
             <div className="card-surface p-6 md:p-8 bg-white min-h-[60vh] animate-fade-in">
-              {activeTab === "Profil Perusahaan" && renderComingSoon("Profil Perusahaan")}
+              {activeTab === "Profil Perusahaan" && <CompanyProfileConfig showToast={showToast} />}
               {activeTab === "Manajemen Informasi" && <InformationManagement showToast={showToast} />}
               {activeTab === "Manajemen Pengumuman" && <AnnouncementsManagement showToast={showToast} />}
               {activeTab === "Manajemen Timeline" && <TimelineManagement showToast={showToast} />}
               {activeTab === "Manajemen Dokumen File" && <DocumentManagement showToast={showToast} />}
-              {activeTab === "Manajemen Kategori File" && renderComingSoon("Manajemen Kategori File")}
+              {activeTab === "Manajemen Kategori File" && <DocumentCategoriesManagement showToast={showToast} />}
               {activeTab === "Manajemen Alur Pendaftaran" && <RegistrationFlowManagement showToast={showToast} />}
               {activeTab === "Akun Saya" && <MyAccount showToast={showToast} onLogout={handleLogout} />}
             </div>
