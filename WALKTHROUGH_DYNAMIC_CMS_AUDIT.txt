@@ -1,0 +1,716 @@
+TERRA TECH - FRONTEND IMPLEMENTATION TODO & CHANGELOG
+=====================================================
+
+AUDIT SCOPE
+-----------
+Audit source code dan endpoint dilakukan tanpa perubahan code aplikasi, backend, database,
+migration, model, controller, atau API contract. File laporan ini menggantikan walkthrough
+sebelumnya pada path yang sama.
+
+Status:
+  DONE       = selesai dan ditemukan di source code.
+  PARTIAL    = sebagian tersedia, fallback/local data, atau integrasi belum penuh.
+  TODO       = belum tersedia di source code.
+  BLOCKED    = menunggu contract atau keputusan backend/product.
+  REVIEW     = ada risiko atau verifikasi tambahan diperlukan.
+
+
+1. FILE CHANGE INVENTORY
+------------------------
+Status histori Git tidak dapat dipastikan karena repository metadata Git tidak tersedia di
+workspace. Daftar berikut berdasarkan implementasi yang terlihat dan perubahan yang dilakukan
+selama pekerjaan ini.
+
+| Status observed | File | Perubahan aktual | Fitur |
+|-----------------|------|------------------|--------|
+| NEW / observed | src/components/dashboard/CmsPages.jsx | Component CMS Pages API-only dengan list, search, filter, CRUD, status, preview, validation, RBAC | CMS Pages |
+| MODIFIED / observed | src/services/api.service.js | Menambahkan pageService dan endpoint Pages | API layer |
+| MODIFIED / observed | src/pages/Dashboard.jsx | Menambahkan menu dan tab CMS Pages untuk role yang ditentukan | Dashboard |
+| MODIFIED / observed | src/pages/DynamicCmsPage.jsx | Resolusi pathname melalui Navigation Page relation lalu Public Page API; sanitasi content | Dynamic CMS |
+| MODIFIED / observed | src/components/dashboard/CmsNavigation.jsx | Memuat Pages, menampilkan relasi Page, mengirim page_id lewat endpoint Navigation existing | Navigation relation |
+| UNCHANGED observed | src/App.jsx | Static route dan catch-all tetap dipertahankan | Routing |
+| UNCHANGED observed | src/components/layout/Navbar.jsx | Dynamic navigation, fallback, link, Coming Soon, mobile drawer tetap berjalan | Public Navbar |
+| UNCHANGED observed | src/utils/defaultNavigation.js | Static fallback navigation tetap tersedia | Navigation fallback |
+| UNCHANGED observed | CMS Services, CMS Portfolio, CMS Halaman Utama | Tidak disentuh pada implementasi Pages | Regression protection |
+
+Catatan: label NEW/MODIFIED/UNCHANGED historis memerlukan Git. Karena Git tidak tersedia,
+label tersebut adalah status observasi implementasi, bukan hasil diff repository.
+
+
+2. AUTHENTICATION
+-----------------
+Status: PARTIAL
+
+Ditemukan di:
+  src/services/api.service.js
+  src/api/client.js
+  src/pages/Login.jsx
+  src/pages/Dashboard.jsx
+
+Implemented:
+  - authService.login(email, password) -> POST auth/login.
+  - authService.me() -> GET auth/me.
+  - authService.logout() -> POST auth/logout lalu membersihkan session.
+  - refreshCurrentUser() mengambil role dari backend.
+  - api_token disimpan di localStorage setelah login.
+  - Dashboard memeriksa token/role sebelum menampilkan area CMS.
+
+Review:
+  - Frontend role gate bukan pengganti authorization backend.
+  - Kredensial demo hardcoded ditemukan di MyAccount.jsx.
+
+
+3. DASHBOARD
+------------
+Status: DONE untuk wiring modul; PARTIAL untuk sebagian data legacy.
+
+[Ditemukan]
+  - Role: super_admin, admin, editor, operator.
+  - Sidebar/tab existing tetap digunakan.
+  - CMS Navigation dirender melalui tab CMS Navigasi.
+  - CMS Pages dirender melalui tab CMS Pages.
+  - Existing CMS tetap dirender pada tab masing-masing.
+
+Role visibility CMS Pages:
+  - super_admin: terlihat.
+  - admin: terlihat.
+  - editor: terlihat.
+  - operator: terlihat read-only.
+
+
+4. CMS NAVIGATION
+-----------------
+Status: PARTIAL / IN PROGRESS
+
+File:
+  src/components/dashboard/CmsNavigation.jsx
+  src/components/layout/Navbar.jsx
+  src/services/api.service.js
+
+[DONE]
+  - GET public navigation.
+  - GET CMS navigation.
+  - GET navigation detail tersedia pada service.
+  - Create, update, delete.
+  - Toggle active/inactive.
+  - Reorder.
+  - Search dan filter type/status.
+  - Add/Edit/Delete UI.
+  - Live Navbar preview.
+  - Internal, external, dan Coming Soon type.
+  - Responsive Navbar.
+  - page_id pada form dan relasi Page pada tabel.
+
+[PARTIAL]
+  - Backend connection belum dapat dianggap terverifikasi penuh untuk semua mutation.
+  - Fallback navigation memakai localStorage jika API gagal.
+  - Search/filter utama pada UI dilakukan local setelah response.
+  - RBAC berada pada frontend; backend tetap authority.
+  - Assignment page_id mengandalkan updateNavigation() existing; contract mutation perlu
+    dikonfirmasi melalui test authenticated.
+
+[VERIFIED CODE ENDPOINTS]
+  GET    /api/v1/navigation
+  GET    /api/v1/cms/navigation
+  GET    /api/v1/cms/navigation/{id}
+  POST   /api/v1/cms/navigation
+  PUT    /api/v1/cms/navigation/{id}
+  DELETE /api/v1/cms/navigation/{id}
+  PUT    /api/v1/cms/navigation/{id}/status
+  PUT    /api/v1/cms/navigation/reorder
+
+
+5. CMS PAGES
+------------
+Status: DONE untuk implementasi frontend; BACKEND MUTATION VERIFICATION masih PARTIAL.
+
+File:
+  src/components/dashboard/CmsPages.jsx
+  src/services/api.service.js
+  src/pages/Dashboard.jsx
+
+[DONE]
+  - List Pages.
+  - Search title/slug.
+  - Filter status.
+  - Create.
+  - Edit.
+  - Delete dengan confirmation dialog.
+  - Change status.
+  - Slug management dan format validation.
+  - Content editor textarea.
+  - Preview.
+  - Loading, empty, error state.
+  - Handling 403, 409, dan 422.
+  - Tidak menggunakan localStorage sebagai database Page.
+
+[RBAC UX]
+  - super_admin: read/create/edit/status/delete.
+  - admin: read/create/edit/status/delete.
+  - editor: read/edit/status; create/delete disembunyikan.
+  - operator: read-only.
+  - Backend tetap menjadi authority authorization.
+
+[REVIEW]
+  - Search effect memiliki warning exhaustive-deps pada lint.
+  - Test CRUD authenticated tiap role belum dijalankan.
+  - Format content backend diasumsikan string karena response production berupa string;
+    perlu dikonfirmasi bila backend kelak mengirim format rich-text lain.
+
+
+6. DYNAMIC CMS PAGE
+-------------------
+Status: DONE dan VERIFIED untuk kasus production Project Availability.
+
+Flow final:
+  pathname
+    -> navigation.path
+    -> navigation.page
+    -> navigation.page.slug
+    -> GET /api/v1/pages/{slug}
+    -> status published
+    -> render title/content
+
+DynamicCmsPage tidak lagi menjalankan flow:
+  pathname -> slug
+
+Tidak ada mapping hardcoded:
+  /ProjectAvailability -> project-availability-1
+
+Production data:
+  navigation.path = /ProjectAvailability
+  navigation.page_id = 2
+  navigation.page.slug = project-availability-1
+  page.status = published
+
+DynamicCmsPage:
+  - Mengambil public navigation.
+  - Normalisasi path hanya untuk comparison.
+  - Menolak navigation non-internal.
+  - Menampilkan unavailable/404 jika navigation tidak ditemukan atau page null.
+  - Mengambil slug dari navigation.page.slug.
+  - Tidak memanggil /cms/pages/{id} dari public page.
+  - Tidak memakai token CMS.
+  - Tidak memakai localStorage sebagai source content Page.
+  - Hanya render status published.
+  - Menangani loading, 404, 403, error network/server, dan invalid URL.
+
+
+7. CMS HALAMAN UTAMA
+--------------------
+Status: PARTIAL / NEED REVIEW
+
+File:
+  src/components/dashboard/CmsLandingPage.jsx
+  src/components/dashboard/CmsHero.jsx
+  src/components/dashboard/CmsAboutCompany.jsx
+  src/components/dashboard/CmsBannerSlider.jsx
+  src/components/dashboard/CmsStatistics.jsx
+  src/components/dashboard/CmsTestimonials.jsx
+  src/components/dashboard/CmsFooter.jsx
+
+[DONE]
+  - Modul terdaftar dan dipakai Dashboard.
+  - Subcomponent Hero, About, Banner, Statistics, Testimonials, Footer tersedia.
+
+[REVIEW]
+  - Banyak data dibaca/disimpan melalui localStorage/default data.
+  - Integrasi backend penuh tidak terbukti dari source code yang diaudit.
+
+
+8. CMS SERVICES / LAYANAN
+-------------------------
+Status: PARTIAL / NEED REVIEW
+
+File:
+  src/components/dashboard/CmsServices.jsx
+  src/components/sections/Services.jsx
+  src/pages/Services.jsx
+
+[DONE]
+  - CMS Services component tersedia.
+  - Data digunakan oleh area public Services.
+  - Existing feature tidak diubah.
+
+[REVIEW]
+  - Source code menunjukkan localStorage/default data.
+  - Tidak ditemukan service API Services khusus pada api.service.js.
+  - Backend endpoint Services dan database availability tidak terverifikasi.
+
+
+9. CMS PORTFOLIO
+----------------
+Status: PARTIAL / BLOCKED / NEED PRODUCT-BACKEND CONFIRMATION
+
+File:
+  src/components/dashboard/CmsPortfolio.jsx
+  src/pages/Portfolio.jsx
+
+Audit:
+  - CMS Portfolio frontend tersedia.
+  - CRUD-like UI/data management tersedia.
+  - Data menggunakan localStorage/default data.
+  - Tidak ditemukan portfolioService di api.service.js.
+  - Tidak ditemukan pemanggilan backend Portfolio API pada source yang diaudit.
+  - Endpoint Portfolio backend tidak dapat diidentifikasi dari frontend.
+  - Database Portfolio tidak dapat diverifikasi dari repository frontend.
+
+Kesimpulan:
+  Portfolio tidak diimplementasikan ulang dan tidak diasumsikan membutuhkan backend baru.
+  Requirement endpoint, payload, database, dan source of truth menunggu konfirmasi
+  product/backend.
+
+
+10. CMS INFORMATION
+-------------------
+Status: PARTIAL
+
+File:
+  src/components/dashboard/InformationManagement.jsx
+  src/services/api.service.js
+
+[DONE]
+  - UI management tersedia.
+  - informationService tersedia:
+      GET    /api/v1/cms/information
+      GET    /api/v1/cms/information/{id}
+      POST   /api/v1/cms/information
+      PUT    /api/v1/cms/information/{id}
+      DELETE /api/v1/cms/information/{id}
+
+[REVIEW]
+  - Component masih memakai localStorage/default articles sebagai sumber utama.
+  - Backend response/mutation authenticated belum diverifikasi end-to-end.
+
+
+11. CMS ANNOUNCEMENT
+--------------------
+Status: PARTIAL
+
+File:
+  src/components/dashboard/AnnouncementsManagement.jsx
+  src/services/api.service.js
+
+[DONE]
+  - UI management tersedia.
+  - announcementService tersedia:
+      GET    /api/v1/cms/announcements
+      GET    /api/v1/cms/announcements/{id}
+      POST   /api/v1/cms/announcements
+      PUT    /api/v1/cms/announcements/{id}
+      DELETE /api/v1/cms/announcements/{id}
+
+[REVIEW]
+  - Component memiliki default/localStorage fallback.
+  - Mutation authenticated belum diverifikasi end-to-end.
+
+
+12. CMS TIMELINE
+----------------
+Status: PARTIAL
+
+File:
+  src/components/dashboard/TimelineManagement.jsx
+  src/services/api.service.js
+
+[DONE]
+  - UI management tersedia.
+  - timelineService tersedia:
+      GET    /api/v1/cms/timelines
+      GET    /api/v1/cms/timelines/{id}
+      POST   /api/v1/cms/timelines
+      PUT    /api/v1/cms/timelines/{id}
+      DELETE /api/v1/cms/timelines/{id}
+
+[REVIEW]
+  - Component memiliki default/localStorage fallback.
+  - Mutation authenticated belum diverifikasi end-to-end.
+
+
+13. CMS FILES
+-------------
+Status: PARTIAL
+
+File:
+  src/components/dashboard/DocumentManagement.jsx
+  src/services/api.service.js
+
+[DONE]
+  - UI file management tersedia.
+  - fileService tersedia:
+      GET    /api/v1/cms/files
+      GET    /api/v1/cms/files/{id}
+      POST   /api/v1/cms/files
+      DELETE /api/v1/cms/files/{id}
+  - documentCategoryService tersedia:
+      GET    /api/v1/cms/file-categories
+      GET    /api/v1/cms/file-categories/{id}
+      POST   /api/v1/cms/file-categories
+      PUT    /api/v1/cms/file-categories/{id}
+      DELETE /api/v1/cms/file-categories/{id}
+
+[REVIEW]
+  - DocumentManagement component masih memakai localStorage/default files.
+  - fileService tidak menyediakan update file pada service.
+
+
+14. CMS REGISTRATION / HOW WE WORK
+----------------------------------
+Status: PARTIAL
+
+File:
+  src/components/dashboard/RegistrationFlowManagement.jsx
+  src/services/api.service.js
+
+[DONE]
+  - UI registration flow tersedia dan dipakai Dashboard.
+  - registrationService tersedia:
+      GET    /api/v1/cms/registration-steps
+      GET    /api/v1/cms/registration-steps/{id}
+      POST   /api/v1/cms/registration-steps
+      PUT    /api/v1/cms/registration-steps/{id}
+      DELETE /api/v1/cms/registration-steps/{id}
+
+[REVIEW]
+  - Component memiliki default/localStorage fallback.
+  - Backend response/mutation belum diverifikasi end-to-end.
+
+
+15. CMS USERS
+-------------
+Status: PARTIAL
+
+File:
+  src/components/dashboard/UsersManagement.jsx
+  src/services/api.service.js
+
+[DONE]
+  - UI user management tersedia.
+  - userService tersedia:
+      GET    /api/v1/cms/users
+      GET    /api/v1/cms/users/{id}
+      POST   /api/v1/cms/users
+      PUT    /api/v1/cms/users/{id}
+      DELETE /api/v1/cms/users/{id}
+      PUT    /api/v1/cms/users/{id}/status
+      PUT    /api/v1/cms/users/{id}/password
+  - Role super_admin, admin, editor, operator dikenali.
+
+[REVIEW]
+  - User fallback/local data masih ditemukan.
+  - Backend permission tiap mutation belum diuji dengan authenticated accounts.
+
+
+16. COMPANY PROFILE
+-------------------
+Status: PARTIAL
+
+File:
+  src/components/dashboard/CompanyProfileConfig.jsx
+  src/services/api.service.js
+
+[DONE]
+  - UI profile dan upload tersedia.
+  - companyProfileService:
+      GET /api/v1/cms/company-profile
+      PUT /api/v1/cms/company-profile
+      POST /api/v1/cms/company-profile untuk FormData method spoofing
+  - Error 401, 403, 404 tersedia pada component.
+
+[REVIEW]
+  - Backend update/upload belum diverifikasi end-to-end.
+
+
+17. PUBLIC NAVBAR
+-----------------
+Status: DONE untuk dynamic behavior; PARTIAL untuk backend availability.
+
+File:
+  src/components/layout/Navbar.jsx
+
+[DONE]
+  - GET public navigation.
+  - Sort active navigation berdasarkan sort_order.
+  - Fallback defaultNavigations dan local fallback.
+  - Internal NavLink.
+  - External link dengan rel="noopener noreferrer".
+  - Coming Soon modal untuk type coming_soon.
+  - Responsive mobile drawer.
+  - Tidak diubah dalam audit/implementasi Dynamic CMS terakhir.
+
+[REVIEW]
+  - Navbar fallback dapat menampilkan data lokal jika API gagal.
+  - Fallback tidak memiliki dynamic Page relation dan tidak boleh menjadi source Page content.
+
+
+18. REACT ROUTER
+----------------
+Status: DONE
+
+File:
+  src/App.jsx
+
+Static:
+  /                 -> Landing
+  /layanan          -> ServicesPage
+  /layanan/:serviceId -> ServiceDetailPage
+  /portofolio      -> PortfolioPage
+  /kontak          -> ContactPage
+  /login            -> LoginPage
+  /dashboard        -> DashboardPage
+
+Catch-all:
+  *                 -> DynamicCmsPage
+
+App.jsx tidak diubah. Static route regression terverifikasi lewat browser.
+
+
+19. API SERVICE LAYER
+---------------------
+Status: PARTIAL / NEED BACKEND VERIFICATION
+
+File:
+  src/services/api.service.js
+  src/api/client.js
+
+Base URL:
+  import.meta.env.VITE_API_URL
+  .env.example: https://api.terratech.my.id/api/v1
+
+Services tersedia:
+  authService
+  dashboardService
+  informationService
+  announcementService
+  timelineService
+  fileService
+  registrationService
+  userService
+  companyProfileService
+  documentCategoryService
+  navigationService
+  pageService
+
+Page endpoints di code:
+  GET    /api/v1/cms/pages
+  GET    /api/v1/cms/pages/{id}
+  GET    /api/v1/pages/{slug}
+  POST   /api/v1/cms/pages
+  PUT    /api/v1/cms/pages/{id}
+  DELETE /api/v1/cms/pages/{id}
+  PUT    /api/v1/cms/pages/{id}/status
+
+Catatan status endpoint:
+  - Public navigation: verified HTTP 200.
+  - Public page slug: verified HTTP 200.
+  - CMS pages list/detail tanpa token: verified HTTP 401.
+  - POST/PUT/DELETE/status mutation: code exists, authenticated runtime verification TODO.
+
+
+20. ERROR HANDLING
+------------------
+Status: DONE pada client dasar; PARTIAL pada konsistensi seluruh modul.
+
+[api/client.js]
+  - HTTP 401 menghapus session dan redirect ke login.
+  - HTTP non-2xx dikembalikan sebagai { success, status, message, errors }.
+  - Network failure dikembalikan sebagai status 503.
+  - JSON dan text response didukung.
+
+[DynamicCmsPage]
+  - Navigation loading/error.
+  - Navigation tidak ditemukan.
+  - Navigation tanpa page.
+  - Page 404.
+  - Page 403.
+  - Page non-published.
+  - Network/server error.
+  - Invalid URL decoding.
+
+[REVIEW]
+  - Beberapa modul lama memiliki handling dan fallback yang berbeda-beda.
+  - Authenticated error behavior seluruh endpoint belum diuji live.
+
+
+21. SECURITY AUDIT
+------------------
+CRITICAL:
+  - Tidak ditemukan direct database access frontend.
+  - Tidak ditemukan API secret baru pada perubahan Pages.
+
+HIGH:
+  - Hardcoded demo password ditemukan di src/components/dashboard/MyAccount.jsx.
+  - Frontend-only RBAC tidak cukup sebagai authorization production.
+
+MEDIUM:
+  - Banyak CMS lama menggunakan localStorage/default data sebagai data source/fallback.
+  - External URL validation tidak konsisten pada seluruh area aplikasi.
+  - Hero.jsx menggunakan dangerouslySetInnerHTML tanpa sanitizer yang terlihat.
+
+LOW:
+  - Token disimpan di localStorage, sehingga perlu mitigasi XSS yang kuat.
+  - Lint memiliki warning unused variable dan exhaustive-deps.
+
+INFO:
+  - DynamicCmsPage memiliki sanitizer allowlist untuk content Page.
+  - Script, iframe, event handler, dan javascript: href diblokir.
+  - target=_blank pada content diberi rel noopener noreferrer.
+  - Page slug di-encode sebelum request.
+
+
+22. BACKEND API INTEGRATION
+---------------------------
+Status: PARTIAL / VERIFIED SEPARATELY PER ENDPOINT
+
+Verified live without authentication:
+  GET /api/v1/navigation
+    HTTP 200
+    Navigation ID 6 memiliki page_id 2 dan page.slug project-availability-1.
+
+  GET /api/v1/pages/project-availability-1
+    HTTP 200
+    Page ID 2 berstatus published.
+
+Verified live without authentication:
+  GET /api/v1/cms/pages
+    HTTP 401 Unauthenticated.
+
+  GET /api/v1/cms/pages/2
+    HTTP 401 Unauthenticated.
+
+Not executed because mutating and requiring authenticated account:
+  POST   /api/v1/cms/pages
+  PUT    /api/v1/cms/pages/{id}
+  DELETE /api/v1/cms/pages/{id}
+  PUT/PATCH /api/v1/cms/pages/{id}/status
+
+Frontend service exists tidak sama dengan backend endpoint mutation verified.
+
+
+23. CHANGELOG IMPLEMENTASI
+--------------------------
+Perubahan Dynamic CMS:
+  - Sebelum: pathname langsung dianggap slug.
+  - Sesudah: pathname dicocokkan dengan Navigation, lalu slug diambil dari navigation.page.
+  - Tidak ada hardcoded path-to-slug mapping.
+  - Tidak memakai endpoint CMS dari public page.
+  - Tidak memakai localStorage untuk Page content.
+  - Status Page wajib published.
+  - Sanitizer diperbaiki setelah browser menemukan HierarchyRequestError pada root document.
+
+Perubahan CMS Pages:
+  - pageService ditambahkan.
+  - CmsPages component ditambahkan.
+  - Dashboard menu CMS Pages ditambahkan.
+  - CMS Navigation menampilkan relasi Page dan page_id.
+
+Hal yang sengaja tidak diubah:
+  - Backend dan database.
+  - App.jsx dan static routes.
+  - CMS Services.
+  - CMS Portfolio.
+  - CMS Halaman Utama.
+  - CMS Navigation CRUD existing.
+  - Navbar behavior existing.
+
+
+24. TODO TRACKER
+----------------
+
+## DONE
+
+- [x] Menambahkan pageService ke API service layer.
+- [x] Menghubungkan CMS Pages ke Dashboard.
+- [x] Menambahkan list, search, filter, create, edit, delete, status, preview CMS Pages.
+- [x] Menambahkan validasi title, slug, content, dan status.
+- [x] Menggunakan backend sebagai source of truth untuk slug uniqueness.
+- [x] Mengubah DynamicCmsPage ke flow Navigation -> Page -> slug -> Public Page API.
+- [x] Memastikan hanya Page published yang dirender.
+- [x] Menjaga static route priority dan catch-all existing.
+- [x] Mempertahankan fallback Navigation tanpa menjadikannya database Page.
+- [x] Mempertahankan sanitasi content dan external link protection.
+- [x] Memverifikasi /ProjectAvailability menampilkan content backend.
+- [x] Memverifikasi unknown URL menampilkan 404.
+- [x] Menjalankan lint dan build.
+
+## IN PROGRESS
+
+- [ ] Verifikasi authenticated CRUD CMS Pages untuk super_admin dan admin.
+- [ ] Verifikasi editor read/edit dan penolakan create/delete.
+- [ ] Verifikasi operator read-only pada browser dengan account nyata.
+- [ ] Verifikasi assignment page_id melalui authenticated Navigation API.
+
+## TODO
+
+- [ ] Menambah automated tests untuk Navigation -> Page -> slug.
+- [ ] Menambah test untuk Page 404, 403, draft/inactive, dan network failure.
+- [ ] Meninjau warning lint yang sudah ada.
+- [ ] Mengurangi ketergantungan localStorage pada CMS legacy sesuai product scope.
+- [ ] Menentukan integrasi backend Portfolio bila requirement sudah tersedia.
+- [ ] Menentukan editor rich-text resmi jika backend content bukan plain string.
+
+## BLOCKED / NEED CONFIRMATION
+
+- [ ] Konfirmasi contract authenticated untuk POST/PUT/DELETE/status CMS Pages.
+- [ ] Konfirmasi payload update Navigation menerima page_id.
+- [ ] Konfirmasi apakah semua public Navigation selalu mengembalikan object page.
+- [ ] Konfirmasi aturan status yang valid: draft, published, inactive, atau enum lain.
+- [ ] Konfirmasi format content Page: plain text, HTML, Markdown, atau rich-text JSON.
+- [ ] Konfirmasi API, database, dan scope Portfolio dari backend/product.
+
+## NEED REVIEW
+
+- [ ] Hardcoded demo password pada MyAccount.jsx.
+- [ ] dangerouslySetInnerHTML pada Hero.jsx tanpa sanitizer yang terlihat.
+- [ ] Penyimpanan api_token di localStorage.
+- [ ] Frontend-only RBAC dan kebutuhan enforcement backend.
+- [ ] External URL validation pada komponen lama.
+- [ ] Legacy CMS yang masih memakai default/localStorage sebagai source data.
+
+
+25. FINAL PROJECT STATUS
+------------------------
+PROJECT STATUS
+
+Frontend:
+  PARTIAL. Struktur aplikasi dan CMS modules tersedia, tetapi sebagian CMS legacy masih
+  memakai localStorage/default data.
+
+Backend Integration:
+  PARTIAL. Public Navigation dan Public Page terverifikasi; CMS mutation belum diuji dengan
+  authentication.
+
+CMS Navigation:
+  PARTIAL. CRUD, fallback, responsive UI, RBAC UX, dan Page relation tersedia; backend
+  mutation serta assignment page_id masih perlu verifikasi authenticated.
+
+CMS Pages:
+  DONE untuk frontend implementation. Backend runtime mutation verification masih TODO.
+
+Dynamic CMS Page:
+  DONE dan VERIFIED untuk /ProjectAvailability.
+
+Portfolio:
+  BLOCKED / NEED PRODUCT-BACKEND CONFIRMATION. Frontend ada, tetapi API/backend Portfolio
+  tidak ditemukan pada source code.
+
+Security:
+  PARTIAL. Dynamic Page content disanitasi, tetapi terdapat hardcoded demo password,
+  dangerouslySetInnerHTML legacy, localStorage token, dan frontend-only RBAC.
+
+Build:
+  SUCCESS. npm.cmd run build exit code 0. Ada warning chunk JavaScript lebih besar dari 500 kB.
+
+Lint:
+  SUCCESS. npm.cmd run lint exit code 0. Ada 39 warning existing, tidak ada error.
+
+Blocked:
+  Authenticated backend mutation test, contract page_id mutation, contract content format,
+  dan backend/product scope Portfolio.
+
+Next Recommended Action:
+  1. Jalankan authenticated CRUD test CMS Pages untuk semua role.
+  2. Verifikasi update Navigation dengan page_id.
+  3. Konfirmasi format content Page dan policy sanitasi backend.
+  4. Prioritaskan remediation security issue HIGH/MEDIUM.
+  5. Tetapkan requirement backend/product untuk Portfolio.
