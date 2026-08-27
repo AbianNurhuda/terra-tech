@@ -1,7 +1,10 @@
 import { useState, useEffect } from "react"
+import { useNavigate } from "react-router-dom"
 import { User, Mail, Lock, ShieldAlert, CheckCircle2, AlertCircle, Eye, EyeOff } from "lucide-react"
+import { authService } from "@/services/api.service"
 
 export default function MyAccount({ showToast, onLogout }) {
+  const navigate = useNavigate()
   const [name, setName] = useState("")
   const [email, setEmail] = useState("")
   const [role, setRole] = useState("")
@@ -55,19 +58,6 @@ export default function MyAccount({ showToast, onLogout }) {
       localStorage.setItem("cms_users", JSON.stringify(updatedList))
     }
 
-    // Sync user password mapping email key
-    const savedPasswords = localStorage.getItem("cms_user_passwords")
-    if (savedPasswords) {
-      const passwordsMap = JSON.parse(savedPasswords)
-      if (passwordsMap[currentEmail]) {
-        passwordsMap[email.trim()] = passwordsMap[currentEmail]
-        if (currentEmail.toLowerCase() !== email.trim().toLowerCase()) {
-          delete passwordsMap[currentEmail]
-        }
-        localStorage.setItem("cms_user_passwords", JSON.stringify(passwordsMap))
-      }
-    }
-
     showToast("Profil akun berhasil diperbarui!", "success")
     
     // Small timeout to refresh dashboard header state
@@ -77,7 +67,7 @@ export default function MyAccount({ showToast, onLogout }) {
   }
 
   // Handle Password Change
-  const handleChangePassword = (e) => {
+  const handleChangePassword = async (e) => {
     e.preventDefault()
     setErrorPassword("")
 
@@ -96,37 +86,64 @@ export default function MyAccount({ showToast, onLogout }) {
       return
     }
 
-    // Get passwords map from local storage or initialize
-    const savedPasswords = localStorage.getItem("cms_user_passwords")
-    const passwordsMap = savedPasswords
-      ? JSON.parse(savedPasswords)
-      : {
-          "superadmin@terratech.com": "superadmin123",
-          "admin@terratech.com": "admin123",
-          "operator@terratech.com": "operator123",
-          "editor@terratech.com": "editor123"
+    try {
+      const res = await authService.changePassword(oldPassword, newPassword, confirmPassword)
+
+      if (!res.success) {
+        if (res.status === 422) {
+          // Validation error from backend
+          if (res.errors && res.errors.current_password) {
+            setErrorPassword(
+              Array.isArray(res.errors.current_password)
+                ? res.errors.current_password[0]
+                : res.errors.current_password
+            )
+          } else if (res.errors && res.errors.password) {
+            setErrorPassword(
+              Array.isArray(res.errors.password)
+                ? res.errors.password[0]
+                : res.errors.password
+            )
+          } else {
+            setErrorPassword(res.message || "Validasi gagal. Silakan periksa input Anda.")
+          }
+          return
+        } else if (res.status === 429) {
+          // Rate limit
+          setErrorPassword("Terlalu banyak percobaan. Silakan coba lagi nanti.")
+          return
+        } else if (res.status === 401) {
+          // Unauthorized - token expired or session invalid
+          setErrorPassword("Sesi Anda telah berakhir. Silakan login kembali.")
+          setTimeout(() => {
+            navigate("/login")
+          }, 1500)
+          return
+        } else {
+          setErrorPassword(res.message || "Gagal mengubah kata sandi. Silakan coba lagi.")
+          return
         }
-    if (!savedPasswords) {
-      localStorage.setItem("cms_user_passwords", JSON.stringify(passwordsMap))
+      }
+
+      // Success - clear form
+      setOldPassword("")
+      setNewPassword("")
+      setConfirmPassword("")
+      showToast("Kata sandi berhasil diperbarui. Silakan login kembali.", "success")
+
+      // Clear auth state and redirect to login
+      // Backend has already revoked the token
+      setTimeout(() => {
+        localStorage.removeItem("api_token")
+        localStorage.removeItem("userRole")
+        localStorage.removeItem("userEmail")
+        localStorage.removeItem("userName")
+        navigate("/login")
+      }, 1500)
+    } catch (err) {
+      console.error("Password change error:", err)
+      setErrorPassword("Terjadi kesalahan. Silakan coba lagi.")
     }
-
-    const currentEmail = localStorage.getItem("userEmail") || ""
-    const currentActualPassword = passwordsMap[currentEmail] || "admin123" // fallback for demo
-
-    if (oldPassword !== currentActualPassword) {
-      setErrorPassword("Kata sandi lama yang Anda masukkan salah.")
-      return
-    }
-
-    // Save new password
-    passwordsMap[currentEmail] = newPassword
-    localStorage.setItem("cms_user_passwords", JSON.stringify(passwordsMap))
-
-    // Reset password form fields
-    setOldPassword("")
-    setNewPassword("")
-    setConfirmPassword("")
-    showToast("Kata sandi Anda berhasil diubah!", "success")
   }
 
   // Handle Account Deletion
@@ -139,14 +156,6 @@ export default function MyAccount({ showToast, onLogout }) {
       const usersList = JSON.parse(savedUsers)
       const updatedList = usersList.filter(u => u.email.toLowerCase() !== currentEmail.toLowerCase())
       localStorage.setItem("cms_users", JSON.stringify(updatedList))
-    }
-
-    // Remove password mapping
-    const savedPasswords = localStorage.getItem("cms_user_passwords")
-    if (savedPasswords) {
-      const passwordsMap = JSON.parse(savedPasswords)
-      delete passwordsMap[currentEmail]
-      localStorage.setItem("cms_user_passwords", JSON.stringify(passwordsMap))
     }
 
     setIsDeleteOpen(false)

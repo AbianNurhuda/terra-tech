@@ -41,6 +41,14 @@ export const authService = {
       await this.logout()
       return { success: false, error: res.message }
     }
+  },
+
+  async changePassword(currentPassword, newPassword, confirmPassword) {
+    return client.patch("auth/password", {
+      current_password: currentPassword,
+      password: newPassword,
+      password_confirmation: confirmPassword,
+    })
   }
 }
 
