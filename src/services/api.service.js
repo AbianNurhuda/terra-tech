@@ -46,9 +46,20 @@ export const authService = {
   async changePassword(currentPassword, newPassword, confirmPassword) {
     return client.patch("auth/password", {
       current_password: currentPassword,
-      password: newPassword,
-      password_confirmation: confirmPassword,
+      new_password: newPassword,
+      new_password_confirmation: confirmPassword,
     })
+  },
+
+  async changeOwnPassword(data) {
+    if (data && typeof data === "object") {
+      return client.patch("auth/password", {
+        current_password: data.current_password || data.currentPassword || "",
+        new_password: data.new_password || data.password || data.newPassword || "",
+        new_password_confirmation: data.new_password_confirmation || data.password_confirmation || data.confirmPassword || "",
+      })
+    }
+    return this.changePassword(...arguments)
   }
 }
 

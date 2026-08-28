@@ -1,10 +1,8 @@
 import { useState, useEffect } from "react"
-import { useNavigate } from "react-router-dom"
-import { User, Mail, Lock, ShieldAlert, CheckCircle2, AlertCircle, Eye, EyeOff } from "lucide-react"
+import { User, Lock, ShieldAlert, AlertCircle, Eye, EyeOff } from "lucide-react"
 import { authService } from "@/services/api.service"
 
 export default function MyAccount({ showToast, onLogout }) {
-  const navigate = useNavigate()
   const [name, setName] = useState("")
   const [email, setEmail] = useState("")
   const [role, setRole] = useState("")
@@ -13,6 +11,8 @@ export default function MyAccount({ showToast, onLogout }) {
   const [oldPassword, setOldPassword] = useState("")
   const [newPassword, setNewPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
+  const [formErrors, setFormErrors] = useState({})
+  const [isSubmittingPassword, setIsSubmittingPassword] = useState(false)
 
   const [showOldPass, setShowOldPass] = useState(false)
   const [showNewPass, setShowNewPass] = useState(false)
@@ -70,54 +70,70 @@ export default function MyAccount({ showToast, onLogout }) {
   const handleChangePassword = async (e) => {
     e.preventDefault()
     setErrorPassword("")
+    setFormErrors({})
 
-    if (!oldPassword || !newPassword || !confirmPassword) {
-      setErrorPassword("Semua field kata sandi wajib diisi.")
+    const errs = {}
+    if (!oldPassword) {
+      errs.current_password = "Kata sandi saat ini wajib diisi."
+    }
+    if (!newPassword) {
+      errs.new_password = "Kata sandi baru wajib diisi."
+    } else if (newPassword.length < 8) {
+      errs.new_password = "Kata sandi baru minimal 8 karakter."
+    }
+    if (!confirmPassword) {
+      errs.new_password_confirmation = "Konfirmasi kata sandi wajib diisi."
+    } else if (newPassword !== confirmPassword) {
+      errs.new_password_confirmation = "Konfirmasi kata sandi baru tidak cocok."
+    }
+
+    if (Object.keys(errs).length > 0) {
+      setFormErrors(errs)
       return
     }
 
-    if (newPassword.length < 6) {
-      setErrorPassword("Kata sandi baru minimal 6 karakter.")
-      return
-    }
-
-    if (newPassword !== confirmPassword) {
-      setErrorPassword("Konfirmasi kata sandi baru tidak cocok.")
-      return
-    }
+    setIsSubmittingPassword(true)
 
     try {
-      const res = await authService.changePassword(oldPassword, newPassword, confirmPassword)
+      const res = await authService.changeOwnPassword({
+        current_password: oldPassword,
+        new_password: newPassword,
+        new_password_confirmation: confirmPassword,
+      })
 
       if (!res.success) {
         if (res.status === 422) {
           // Validation error from backend
-          if (res.errors && res.errors.current_password) {
-            setErrorPassword(
-              Array.isArray(res.errors.current_password)
+          const apiErrs = {}
+          if (res.errors) {
+            if (res.errors.current_password) {
+              apiErrs.current_password = Array.isArray(res.errors.current_password)
                 ? res.errors.current_password[0]
                 : res.errors.current_password
-            )
-          } else if (res.errors && res.errors.password) {
-            setErrorPassword(
-              Array.isArray(res.errors.password)
-                ? res.errors.password[0]
-                : res.errors.password
-            )
-          } else {
+            }
+            if (res.errors.new_password) {
+              apiErrs.new_password = Array.isArray(res.errors.new_password)
+                ? res.errors.new_password[0]
+                : res.errors.new_password
+            }
+            if (res.errors.new_password_confirmation) {
+              apiErrs.new_password_confirmation = Array.isArray(res.errors.new_password_confirmation)
+                ? res.errors.new_password_confirmation[0]
+                : res.errors.new_password_confirmation
+            }
+          }
+          setFormErrors(apiErrs)
+          if (Object.keys(apiErrs).length === 0) {
             setErrorPassword(res.message || "Validasi gagal. Silakan periksa input Anda.")
           }
           return
         } else if (res.status === 429) {
           // Rate limit
-          setErrorPassword("Terlalu banyak percobaan. Silakan coba lagi nanti.")
+          setErrorPassword(res.message || "Too many requests. Please try again later.")
           return
         } else if (res.status === 401) {
-          // Unauthorized - token expired or session invalid
-          setErrorPassword("Sesi Anda telah berakhir. Silakan login kembali.")
-          setTimeout(() => {
-            navigate("/login")
-          }, 1500)
+          // Unauthorized - session invalid or expired
+          setErrorPassword(res.message || "Sesi Anda telah berakhir. Silakan login kembali.")
           return
         } else {
           setErrorPassword(res.message || "Gagal mengubah kata sandi. Silakan coba lagi.")
@@ -125,24 +141,17 @@ export default function MyAccount({ showToast, onLogout }) {
         }
       }
 
-      // Success - clear form
+      // Success - clear form and keep session active
       setOldPassword("")
       setNewPassword("")
       setConfirmPassword("")
-      showToast("Kata sandi berhasil diperbarui. Silakan login kembali.", "success")
-
-      // Clear auth state and redirect to login
-      // Backend has already revoked the token
-      setTimeout(() => {
-        localStorage.removeItem("api_token")
-        localStorage.removeItem("userRole")
-        localStorage.removeItem("userEmail")
-        localStorage.removeItem("userName")
-        navigate("/login")
-      }, 1500)
-    } catch (err) {
-      console.error("Password change error:", err)
-      setErrorPassword("Terjadi kesalahan. Silakan coba lagi.")
+      setFormErrors({})
+      setErrorPassword("")
+      showToast(res.message || "Kata sandi berhasil diperbarui.", "success")
+    } catch {
+      setErrorPassword("Terjadi kesalahan pada sistem. Silakan coba lagi nanti.")
+    } finally {
+      setIsSubmittingPassword(false)
     }
   }
 
@@ -252,8 +261,17 @@ export default function MyAccount({ showToast, onLogout }) {
                     type={showOldPass ? "text" : "password"}
                     placeholder="Masukkan kata sandi lama Anda"
                     value={oldPassword}
-                    onChange={(e) => setOldPassword(e.target.value)}
-                    className="w-full pl-3.5 pr-10 py-2.5 rounded-xl border border-dark-border text-xs focus:outline-none focus:border-accent-cyan/60"
+                    onChange={(e) => {
+                      setOldPassword(e.target.value)
+                      if (formErrors.current_password) {
+                        setFormErrors((prev) => ({ ...prev, current_password: "" }))
+                      }
+                    }}
+                    className={`w-full pl-3.5 pr-10 py-2.5 rounded-xl border text-xs focus:outline-none focus:border-accent-cyan/60 ${
+                      formErrors.current_password
+                        ? "border-rose-400 bg-rose-50/30"
+                        : "border-dark-border"
+                    }`}
                   />
                   <button
                     type="button"
@@ -263,6 +281,11 @@ export default function MyAccount({ showToast, onLogout }) {
                     {showOldPass ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
                 </div>
+                {formErrors.current_password && (
+                  <span className="text-[11px] text-rose-500 font-semibold block">
+                    {formErrors.current_password}
+                  </span>
+                )}
               </div>
 
               <div className="space-y-1.5">
@@ -270,10 +293,19 @@ export default function MyAccount({ showToast, onLogout }) {
                 <div className="relative">
                   <input
                     type={showNewPass ? "text" : "password"}
-                    placeholder="Min. 6 karakter"
+                    placeholder="Min. 8 karakter"
                     value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    className="w-full pl-3.5 pr-10 py-2.5 rounded-xl border border-dark-border text-xs focus:outline-none focus:border-accent-cyan/60"
+                    onChange={(e) => {
+                      setNewPassword(e.target.value)
+                      if (formErrors.new_password) {
+                        setFormErrors((prev) => ({ ...prev, new_password: "" }))
+                      }
+                    }}
+                    className={`w-full pl-3.5 pr-10 py-2.5 rounded-xl border text-xs focus:outline-none focus:border-accent-cyan/60 ${
+                      formErrors.new_password
+                        ? "border-rose-400 bg-rose-50/30"
+                        : "border-dark-border"
+                    }`}
                   />
                   <button
                     type="button"
@@ -283,6 +315,11 @@ export default function MyAccount({ showToast, onLogout }) {
                     {showNewPass ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
                 </div>
+                {formErrors.new_password && (
+                  <span className="text-[11px] text-rose-500 font-semibold block">
+                    {formErrors.new_password}
+                  </span>
+                )}
               </div>
 
               <div className="space-y-1.5">
@@ -292,8 +329,17 @@ export default function MyAccount({ showToast, onLogout }) {
                     type={showConfirmPass ? "text" : "password"}
                     placeholder="Ulangi kata sandi baru Anda"
                     value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="w-full pl-3.5 pr-10 py-2.5 rounded-xl border border-dark-border text-xs focus:outline-none focus:border-accent-cyan/60"
+                    onChange={(e) => {
+                      setConfirmPassword(e.target.value)
+                      if (formErrors.new_password_confirmation) {
+                        setFormErrors((prev) => ({ ...prev, new_password_confirmation: "" }))
+                      }
+                    }}
+                    className={`w-full pl-3.5 pr-10 py-2.5 rounded-xl border text-xs focus:outline-none focus:border-accent-cyan/60 ${
+                      formErrors.new_password_confirmation
+                        ? "border-rose-400 bg-rose-50/30"
+                        : "border-dark-border"
+                    }`}
                   />
                   <button
                     type="button"
@@ -303,13 +349,19 @@ export default function MyAccount({ showToast, onLogout }) {
                     {showConfirmPass ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
                 </div>
+                {formErrors.new_password_confirmation && (
+                  <span className="text-[11px] text-rose-500 font-semibold block">
+                    {formErrors.new_password_confirmation}
+                  </span>
+                )}
               </div>
 
               <button
                 type="submit"
-                className="btn-primary py-2.5 px-4 text-xs font-bold rounded-xl w-full font-display"
+                disabled={isSubmittingPassword}
+                className="btn-primary py-2.5 px-4 text-xs font-bold rounded-xl w-full font-display disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Ganti Kata Sandi
+                {isSubmittingPassword ? "Menyimpan..." : "Ganti Kata Sandi"}
               </button>
             </form>
           </div>
