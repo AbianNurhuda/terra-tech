@@ -11,6 +11,7 @@ class ApiClient {
 
     // Setup headers
     const headers = {
+      Accept: "application/json",
       ...options.headers,
     };
 
@@ -22,7 +23,6 @@ class ApiClient {
     const isFormData = options.body instanceof FormData;
 
     if (!isFormData) {
-      headers["Accept"] = "application/json";
       headers["Content-Type"] = "application/json";
     }
 

@@ -67,7 +67,7 @@ export default function RegulationManagement({ showToast, readOnly = false }) {
     document_number: "",
     document_date: "",
     description: "",
-    source_type: "pdf", // 'pdf' | 'url'
+    source_type: "file", // 'file' | 'url'
     file: null,
     file_name: "",
     file_size: "",
@@ -239,7 +239,7 @@ export default function RegulationManagement({ showToast, readOnly = false }) {
       errors.category = "Kategori regulasi wajib dipilih."
     }
 
-    if (formData.source_type === "pdf") {
+    if (formData.source_type === "file") {
       if (!isEdit && !formData.file) {
         errors.file = "File dokumen PDF wajib diunggah."
       }
@@ -274,10 +274,12 @@ export default function RegulationManagement({ showToast, readOnly = false }) {
     setIsSubmitting(true)
     try {
       let res
-      if (formData.source_type === "pdf") {
+      if (formData.source_type === "file") {
         const payload = new FormData()
         payload.append("title", formData.title.trim())
-        payload.append("category", formData.category)
+        if (formData.category) {
+          payload.append("category", formData.category)
+        }
         if (formData.document_number?.trim()) {
           payload.append("document_number", formData.document_number.trim())
         }
@@ -287,21 +289,33 @@ export default function RegulationManagement({ showToast, readOnly = false }) {
         if (formData.description?.trim()) {
           payload.append("description", formData.description.trim())
         }
-        payload.append("source_type", "pdf")
-        payload.append("status", formData.status.toLowerCase())
-        payload.append("file", formData.file)
+        payload.append("source_type", "file")
+        if (formData.status) {
+          payload.append("status", formData.status.toLowerCase())
+        }
+        if (formData.file) {
+          payload.append("file", formData.file)
+        }
 
         res = await regulationService.createRegulation(payload)
       } else {
         const payload = {
           title: formData.title.trim(),
-          category: formData.category,
-          document_number: formData.document_number?.trim() || "",
-          document_date: formData.document_date || "",
-          description: formData.description?.trim() || "",
           source_type: "url",
           external_url: formData.external_url.trim(),
           status: formData.status.toLowerCase()
+        }
+        if (formData.category) {
+          payload.category = formData.category
+        }
+        if (formData.document_number?.trim()) {
+          payload.document_number = formData.document_number.trim()
+        }
+        if (formData.document_date) {
+          payload.document_date = formData.document_date
+        }
+        if (formData.description?.trim()) {
+          payload.description = formData.description.trim()
         }
 
         res = await regulationService.createRegulation(payload)
@@ -313,8 +327,14 @@ export default function RegulationManagement({ showToast, readOnly = false }) {
         if (showToast) showToast("Regulasi berhasil disimpan.", "success")
         fetchRegulations()
       } else {
-        if (res.status === 422 && res.errors) {
-          setFormErrors(res.errors)
+        if (res.status === 422) {
+          if (res.errors && Object.keys(res.errors).length > 0) {
+            setFormErrors(res.errors)
+            if (showToast) showToast("Data regulasi tidak valid. Silakan periksa kembali input Anda.", "error")
+          } else {
+            setModalGeneralError(res.message || "Data regulasi tidak valid. Silakan periksa kembali input Anda.")
+            if (showToast) showToast("Data regulasi tidak valid. Silakan periksa kembali input Anda.", "error")
+          }
         } else if (res.status === 403) {
           setModalGeneralError("Anda tidak memiliki izin untuk melakukan tindakan ini.")
         } else if (res.status === 429) {
@@ -340,11 +360,13 @@ export default function RegulationManagement({ showToast, readOnly = false }) {
     setIsSubmitting(true)
     try {
       let res
-      if (formData.source_type === "pdf" && formData.file) {
+      if (formData.source_type === "file" && formData.file) {
         // User replaced the PDF file -> use FormData
         const payload = new FormData()
         payload.append("title", formData.title.trim())
-        payload.append("category", formData.category)
+        if (formData.category) {
+          payload.append("category", formData.category)
+        }
         if (formData.document_number?.trim()) {
           payload.append("document_number", formData.document_number.trim())
         }
@@ -354,8 +376,10 @@ export default function RegulationManagement({ showToast, readOnly = false }) {
         if (formData.description?.trim()) {
           payload.append("description", formData.description.trim())
         }
-        payload.append("source_type", "pdf")
-        payload.append("status", formData.status.toLowerCase())
+        payload.append("source_type", "file")
+        if (formData.status) {
+          payload.append("status", formData.status.toLowerCase())
+        }
         payload.append("file", formData.file)
 
         res = await regulationService.updateRegulation(selectedRegulation.id, payload)
@@ -363,12 +387,20 @@ export default function RegulationManagement({ showToast, readOnly = false }) {
         // Metadata update or external URL or unchanged PDF
         const payload = {
           title: formData.title.trim(),
-          category: formData.category,
-          document_number: formData.document_number?.trim() || "",
-          document_date: formData.document_date || "",
-          description: formData.description?.trim() || "",
-          source_type: formData.source_type === "pdf" ? "pdf" : "url",
+          source_type: formData.source_type === "file" ? "file" : "url",
           status: formData.status.toLowerCase()
+        }
+        if (formData.category) {
+          payload.category = formData.category
+        }
+        if (formData.document_number?.trim()) {
+          payload.document_number = formData.document_number.trim()
+        }
+        if (formData.document_date) {
+          payload.document_date = formData.document_date
+        }
+        if (formData.description?.trim()) {
+          payload.description = formData.description.trim()
         }
         if (formData.source_type === "url") {
           payload.external_url = formData.external_url.trim()
@@ -383,8 +415,14 @@ export default function RegulationManagement({ showToast, readOnly = false }) {
         if (showToast) showToast("Regulasi berhasil diperbarui.", "success")
         fetchRegulations()
       } else {
-        if (res.status === 422 && res.errors) {
-          setFormErrors(res.errors)
+        if (res.status === 422) {
+          if (res.errors && Object.keys(res.errors).length > 0) {
+            setFormErrors(res.errors)
+            if (showToast) showToast("Data regulasi tidak valid. Silakan periksa kembali input Anda.", "error")
+          } else {
+            setModalGeneralError(res.message || "Data regulasi tidak valid. Silakan periksa kembali input Anda.")
+            if (showToast) showToast("Data regulasi tidak valid. Silakan periksa kembali input Anda.", "error")
+          }
         } else if (res.status === 403) {
           setModalGeneralError("Anda tidak memiliki izin untuk melakukan tindakan ini.")
         } else if (res.status === 404) {
@@ -439,14 +477,14 @@ export default function RegulationManagement({ showToast, readOnly = false }) {
 
   const openEditModal = (reg) => {
     setSelectedRegulation(reg)
-    const isPdf = reg.source_type === "pdf" || reg.source_type === "upload"
+    const isFile = reg.source_type === "file" || reg.source_type === "pdf" || reg.source_type === "upload"
     setFormData({
       title: reg.title || "",
       category: reg.category || CATEGORIES[0],
       document_number: reg.document_number === "—" ? "" : reg.document_number || "",
       document_date: reg.document_date ? reg.document_date.split("T")[0] : "",
       description: reg.description || "",
-      source_type: isPdf ? "pdf" : "url",
+      source_type: isFile ? "file" : "url",
       file: null,
       file_name: reg.file_name || "",
       file_size: reg.file_size || "",
@@ -499,7 +537,7 @@ export default function RegulationManagement({ showToast, readOnly = false }) {
       document_number: "",
       document_date: "",
       description: "",
-      source_type: "pdf",
+      source_type: "file",
       file: null,
       file_name: "",
       file_size: "",
@@ -546,7 +584,7 @@ export default function RegulationManagement({ showToast, readOnly = false }) {
 
   // Source Type Badge Helper
   const getSourceBadge = (sourceType, fileName) => {
-    if (sourceType === "pdf" || sourceType === "upload") {
+    if (sourceType === "file" || sourceType === "pdf" || sourceType === "upload") {
       return (
         <span
           className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200"
@@ -980,6 +1018,13 @@ export default function RegulationManagement({ showToast, readOnly = false }) {
                     <option value="published">Published</option>
                     <option value="draft">Draft</option>
                   </select>
+                  {formErrors.status && (
+                    <span className="text-[11px] text-rose-500 mt-1 block">
+                      {Array.isArray(formErrors.status)
+                        ? formErrors.status.join(", ")
+                        : formErrors.status}
+                    </span>
+                  )}
                 </div>
               </div>
 
@@ -1079,10 +1124,10 @@ export default function RegulationManagement({ showToast, readOnly = false }) {
                   <button
                     type="button"
                     onClick={() =>
-                      setFormData({ ...formData, source_type: "pdf" })
+                      setFormData({ ...formData, source_type: "file" })
                     }
                     className={`py-2 rounded-lg font-bold text-xs flex items-center justify-center gap-1.5 transition-all ${
-                      formData.source_type === "pdf"
+                      formData.source_type === "file"
                         ? "bg-white text-accent-cyan shadow-sm border border-dark-border/40"
                         : "text-text-secondary hover:text-text-primary"
                     }`}
@@ -1105,10 +1150,17 @@ export default function RegulationManagement({ showToast, readOnly = false }) {
                     <span>External URL</span>
                   </button>
                 </div>
+                {formErrors.source_type && (
+                  <span className="text-[11px] text-rose-500 mt-1 block">
+                    {Array.isArray(formErrors.source_type)
+                      ? formErrors.source_type.join(", ")
+                      : formErrors.source_type}
+                  </span>
+                )}
               </div>
 
               {/* Dynamic Source Input */}
-              {formData.source_type === "pdf" ? (
+              {formData.source_type === "file" ? (
                 <div className="space-y-2">
                   <label className="block font-bold text-text-secondary text-[11px]">
                     File PDF (Maksimal 10 MB) <span className="text-rose-500">*</span>
@@ -1341,6 +1393,13 @@ export default function RegulationManagement({ showToast, readOnly = false }) {
                     <option value="published">Published</option>
                     <option value="draft">Draft</option>
                   </select>
+                  {formErrors.status && (
+                    <span className="text-[11px] text-rose-500 mt-1 block">
+                      {Array.isArray(formErrors.status)
+                        ? formErrors.status.join(", ")
+                        : formErrors.status}
+                    </span>
+                  )}
                 </div>
               </div>
 
@@ -1438,10 +1497,10 @@ export default function RegulationManagement({ showToast, readOnly = false }) {
                   <button
                     type="button"
                     onClick={() =>
-                      setFormData({ ...formData, source_type: "pdf" })
+                      setFormData({ ...formData, source_type: "file" })
                     }
                     className={`py-2 rounded-lg font-bold text-xs flex items-center justify-center gap-1.5 transition-all ${
-                      formData.source_type === "pdf"
+                      formData.source_type === "file"
                         ? "bg-white text-accent-cyan shadow-sm border border-dark-border/40"
                         : "text-text-secondary hover:text-text-primary"
                     }`}
@@ -1464,10 +1523,17 @@ export default function RegulationManagement({ showToast, readOnly = false }) {
                     <span>External URL</span>
                   </button>
                 </div>
+                {formErrors.source_type && (
+                  <span className="text-[11px] text-rose-500 mt-1 block">
+                    {Array.isArray(formErrors.source_type)
+                      ? formErrors.source_type.join(", ")
+                      : formErrors.source_type}
+                  </span>
+                )}
               </div>
 
               {/* Dynamic Source Input */}
-              {formData.source_type === "pdf" ? (
+              {formData.source_type === "file" ? (
                 <div className="space-y-2">
                   <label className="block font-bold text-text-secondary text-[11px]">
                     File Dokumen PDF Saat Ini
@@ -1718,7 +1784,8 @@ export default function RegulationManagement({ showToast, readOnly = false }) {
                     Akses Berkas Dokumen
                   </span>
 
-                  {activeDetail.source_type === "pdf" ||
+                  {activeDetail.source_type === "file" ||
+                  activeDetail.source_type === "pdf" ||
                   activeDetail.source_type === "upload" ? (
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 bg-rose-50/60 border border-rose-100 rounded-xl">
                       <div className="flex items-center gap-2.5 min-w-0">
