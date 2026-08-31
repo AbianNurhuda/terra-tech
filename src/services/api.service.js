@@ -427,3 +427,44 @@ export const pageService = {
   }
 }
 
+export const regulationService = {
+  async getRegulations(params = {}) {
+    const query = new URLSearchParams()
+    if (params.search) query.append("search", params.search.trim())
+    if (params.category && params.category !== "Semua" && params.category !== "all") {
+      query.append("category", params.category)
+    }
+    if (params.status && params.status !== "Semua" && params.status !== "all") {
+      query.append("status", params.status.toLowerCase())
+    }
+    if (params.page) query.append("page", params.page)
+    if (params.per_page) query.append("per_page", params.per_page)
+
+    const queryString = query.toString() ? `?${query.toString()}` : ""
+    return client.get(`cms/regulations${queryString}`)
+  },
+
+  async getRegulation(id) {
+    return client.get(`cms/regulations/${id}`)
+  },
+
+  async createRegulation(formDataOrData) {
+    return client.post("cms/regulations", formDataOrData)
+  },
+
+  async updateRegulation(id, formDataOrData) {
+    if (formDataOrData instanceof FormData) {
+      if (!formDataOrData.has("_method")) {
+        formDataOrData.append("_method", "PUT")
+      }
+      return client.post(`cms/regulations/${id}`, formDataOrData)
+    }
+    return client.put(`cms/regulations/${id}`, formDataOrData)
+  },
+
+  async deleteRegulation(id) {
+    return client.delete(`cms/regulations/${id}`)
+  }
+}
+
+

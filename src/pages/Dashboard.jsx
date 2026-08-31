@@ -34,7 +34,8 @@ import {
   CheckSquare,
   Activity,
   Compass,
-  FileText
+  FileText,
+  FileCheck
 } from "lucide-react"
 
 // Import Super Admin Subviews
@@ -50,6 +51,7 @@ import MyAccount from "@/components/dashboard/MyAccount"
 import CmsLandingPage from "@/components/dashboard/CmsLandingPage"
 import CmsNavigation from "@/components/dashboard/CmsNavigation"
 import CmsPages from "@/components/dashboard/CmsPages"
+import RegulationManagement from "@/components/dashboard/RegulationManagement"
 
 export function DashboardPage() {
   const navigate = useNavigate()
@@ -337,6 +339,7 @@ export function DashboardPage() {
           { name: "Pengumuman Staf", icon: Megaphone },
           { name: "Timeline & Milestone", icon: Calendar },
           { name: "Dokumen & File", icon: FolderOpen },
+          { name: "Regulasi", icon: FileCheck },
           { name: "Kategori Dokumen", icon: Tags },
           { name: "CMS Halaman Utama", icon: BookOpen },
           { name: "CMS Navigasi", icon: Compass },
@@ -350,6 +353,7 @@ export function DashboardPage() {
           { name: "Manajemen Pengumuman", icon: Megaphone },
           { name: "Manajemen Timeline", icon: Calendar },
           { name: "Manajemen Dokumen File", icon: FolderOpen },
+          { name: "Manajemen Regulasi", icon: FileCheck },
           { name: "Manajemen Kategori File", icon: Tags },
           { name: "Manajemen Alur Pendaftaran", icon: Layers },
           { name: "CMS Halaman Utama", icon: BookOpen },
@@ -365,6 +369,7 @@ export function DashboardPage() {
           { name: "Manajemen Pengumuman", icon: Megaphone },
           { name: "Manajemen Timeline", icon: Calendar },
           { name: "Manajemen Dokumen File", icon: FolderOpen },
+          { name: "Manajemen Regulasi", icon: FileCheck },
           { name: "Manajemen Alur Pendaftaran", icon: Layers },
           { name: "CMS Halaman Utama", icon: BookOpen },
           { name: "CMS Navigasi", icon: Compass },
@@ -377,6 +382,7 @@ export function DashboardPage() {
           { name: "Manajemen Pengumuman", icon: Megaphone },
           { name: "Manajemen Timeline", icon: Calendar },
           { name: "Manajemen Dokumen File", icon: FolderOpen },
+          { name: "Manajemen Regulasi", icon: FileCheck },
           { name: "Manajemen Kategori File", icon: Tags },
           { name: "Manajemen Alur Pendaftaran", icon: Layers },
           { name: "CMS Halaman Utama", icon: BookOpen },
@@ -1132,6 +1138,7 @@ export function DashboardPage() {
               {activeTab === "Pengumuman Staf" && <AnnouncementsManagement showToast={showToast} />}
               {activeTab === "Timeline & Milestone" && <TimelineManagement showToast={showToast} />}
               {activeTab === "Dokumen & File" && <DocumentManagement showToast={showToast} />}
+              {activeTab === "Regulasi" && <RegulationManagement showToast={showToast} />}
               {activeTab === "Kategori Dokumen" && <DocumentCategoriesManagement showToast={showToast} />}
             </div>
           ) : role === "admin" || role === "editor" ? (
@@ -1142,6 +1149,7 @@ export function DashboardPage() {
               {activeTab === "Manajemen Pengumuman" && <AnnouncementsManagement showToast={showToast} />}
               {activeTab === "Manajemen Timeline" && <TimelineManagement showToast={showToast} />}
               {activeTab === "Manajemen Dokumen File" && <DocumentManagement showToast={showToast} />}
+              {activeTab === "Manajemen Regulasi" && <RegulationManagement showToast={showToast} readOnly={role === "editor"} />}
               {activeTab === "Manajemen Kategori File" && <DocumentCategoriesManagement showToast={showToast} />}
               {activeTab === "Manajemen Alur Pendaftaran" && <RegistrationFlowManagement showToast={showToast} />}
               {activeTab === "Akun Saya" && <MyAccount showToast={showToast} onLogout={handleLogout} />}
@@ -1153,6 +1161,7 @@ export function DashboardPage() {
               {activeTab === "Manajemen Pengumuman" && <AnnouncementsManagement showToast={showToast} readOnly={true} />}
               {activeTab === "Manajemen Timeline" && <TimelineManagement showToast={showToast} readOnly={true} />}
               {activeTab === "Manajemen Dokumen File" && <DocumentManagement showToast={showToast} readOnly={true} />}
+              {activeTab === "Manajemen Regulasi" && <RegulationManagement showToast={showToast} readOnly={true} />}
               {activeTab === "Manajemen Alur Pendaftaran" && <RegistrationFlowManagement showToast={showToast} readOnly={true} />}
             </div>
           ) : (
