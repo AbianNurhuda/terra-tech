@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react"
 import { useNavigate } from "react-router-dom"
-import { authService, dashboardService } from "@/services/api.service"
+import { authService, dashboardService, regulationService } from "@/services/api.service"
 import {
   Shield,
   UserCheck,
@@ -92,6 +92,11 @@ export function DashboardPage() {
   })
   const [systemHealth, setSystemHealth] = useState(null)
 
+  // Draft Regulations monitoring state (from CMS backend API)
+  const [draftRegulations, setDraftRegulations] = useState([])
+  const [draftRegulationsCount, setDraftRegulationsCount] = useState(0)
+  const [draftRegulationsLoading, setDraftRegulationsLoading] = useState(false)
+
   const showToast = (message, type = "success") => {
     setToast({ message, type })
     setTimeout(() => setToast(null), 3500)
@@ -182,12 +187,42 @@ export function DashboardPage() {
     }
   }
 
+  const fetchDraftRegulations = async () => {
+    setDraftRegulationsLoading(true)
+    try {
+      const res = await regulationService.getRegulations({ status: "draft", per_page: 5 })
+      if (res.success && res.data) {
+        const rawData = res.data
+        let list = []
+        let total = 0
+        if (Array.isArray(rawData)) {
+          list = rawData
+          total = rawData.length
+        } else if (rawData && Array.isArray(rawData.data)) {
+          list = rawData.data
+          total = rawData.total ?? rawData.data.length
+        } else if (rawData && typeof rawData === "object") {
+          list = rawData.regulations || rawData.items || []
+          total = list.length
+        }
+        const draftsOnly = list.filter(item => String(item.status || "").toLowerCase() === "draft")
+        setDraftRegulations(draftsOnly)
+        setDraftRegulationsCount(total || draftsOnly.length)
+      }
+    } catch (err) {
+      console.error("Failed to load draft regulations:", err)
+    } finally {
+      setDraftRegulationsLoading(false)
+    }
+  }
+
   // Fetch real-time dashboard data from REST API
   useEffect(() => {
     if (!role) return
 
     if (activeTab === "Ringkasan" || activeTab === "Dashboard Operasional") {
       fetchDashboardData()
+      fetchDraftRegulations()
     }
   }, [role, activeTab])
 
@@ -459,16 +494,119 @@ export function DashboardPage() {
     return combined.slice(0, 8)
   }
 
+  const navigateToRegulationTab = () => {
+    if (role === "super_admin") {
+      setActiveTab("Regulasi")
+    } else {
+      setActiveTab("Manajemen Regulasi")
+    }
+  }
+
+  const renderDraftRegulationsCard = () => {
+    return (
+      <div className="card-surface p-6 bg-white space-y-4 text-left border border-dark-border rounded-2xl shadow-sm">
+        <div className="flex justify-between items-center border-b border-dark-border pb-3">
+          <div className="flex items-center gap-2.5">
+            <div className="h-8 w-8 rounded-xl bg-rose-50 border border-rose-100 flex items-center justify-center text-rose-600">
+              <FileCheck className="h-4 w-4" />
+            </div>
+            <div>
+              <h3 className="font-display font-bold text-sm text-text-primary">
+                Regulasi Draft
+              </h3>
+              <p className="text-[11px] text-text-muted">
+                {draftRegulationsCount > 0
+                  ? `${draftRegulationsCount} regulasi menunggu publikasi`
+                  : "Tidak ada regulasi draft yang menunggu publikasi"}
+              </p>
+            </div>
+          </div>
+          <span className="px-2 py-0.5 rounded bg-rose-50 text-rose-700 border border-rose-100 text-[10px] font-bold">
+            {draftRegulationsCount} Draft
+          </span>
+        </div>
+
+        {draftRegulationsLoading ? (
+          <div className="py-6 flex items-center justify-center space-x-2 text-xs text-text-muted">
+            <div className="h-4 w-4 border-2 border-accent-cyan border-t-transparent rounded-full animate-spin" />
+            <span>Memuat regulasi draft...</span>
+          </div>
+        ) : draftRegulations.length > 0 ? (
+          <div className="space-y-2.5">
+            {draftRegulations.map((reg) => (
+              <div
+                key={reg.id}
+                className="p-3.5 rounded-xl border border-dark-border bg-dark-base/40 hover:bg-dark-base transition-colors space-y-1.5"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <h4 className="font-bold text-xs text-text-primary line-clamp-1" title={reg.title}>
+                    {reg.title}
+                  </h4>
+                  <span className="px-2 py-0.5 rounded text-[9px] font-bold tracking-wide uppercase bg-amber-50 text-amber-700 border border-amber-200 shrink-0">
+                    Draft
+                  </span>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2 text-[10px] text-text-muted">
+                  {(reg.original_document_number || (reg.document_number && reg.document_number !== "—") || reg.system_document_number) && (
+                    <span className="font-mono bg-white px-1.5 py-0.5 rounded border border-dark-border/60">
+                      No. {reg.original_document_number || reg.document_number || reg.system_document_number}
+                    </span>
+                  )}
+                  {reg.category && (
+                    <span className="bg-dark-base px-1.5 py-0.5 rounded font-semibold text-text-secondary">
+                      {reg.category}
+                    </span>
+                  )}
+                  <span className="text-text-muted">
+                    {reg.document_date
+                      ? new Date(reg.document_date).toLocaleDateString("id-ID", {
+                          day: "numeric",
+                          month: "short",
+                          year: "numeric"
+                        })
+                      : reg.created_at
+                      ? new Date(reg.created_at).toLocaleDateString("id-ID", {
+                          day: "numeric",
+                          month: "short",
+                          year: "numeric"
+                        })
+                      : ""}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="py-4 text-center text-xs text-text-muted">
+            Belum ada regulasi berstatus draft di dalam sistem.
+          </div>
+        )}
+
+        <div className="pt-2 border-t border-dark-border/60 flex justify-end">
+          <button
+            onClick={navigateToRegulationTab}
+            className="px-3.5 py-1.5 rounded-xl text-xs font-bold text-accent-cyan hover:bg-accent-cyan/10 transition-colors flex items-center gap-1.5"
+          >
+            <span>Lihat Semua Regulasi</span>
+            <span className="text-xs">→</span>
+          </button>
+        </div>
+      </div>
+    )
+  }
+
   const renderDraftsPanel = () => {
     const draftModules = [
       { name: "Informasi", count: draftsCount.information, color: "text-blue-500", bg: "bg-blue-50/50 border-blue-100/50 hover:bg-blue-50" },
       { name: "Pengumuman", count: draftsCount.announcements, color: "text-amber-500", bg: "bg-amber-50/50 border-amber-100/50 hover:bg-amber-50" },
       { name: "Timeline", count: draftsCount.timelines, color: "text-purple-500", bg: "bg-purple-50/50 border-purple-100/50 hover:bg-purple-50" },
       { name: "Dokumen", count: draftsCount.files, color: "text-emerald-500", bg: "bg-emerald-50/50 border-emerald-100/50 hover:bg-emerald-50" },
+      { name: "Regulasi", count: draftRegulationsCount, color: "text-rose-500", bg: "bg-rose-50/50 border-rose-100/50 hover:bg-rose-50" },
       { name: "Pendaftaran", count: draftsCount.registration_steps, color: "text-indigo-500", bg: "bg-indigo-50/50 border-indigo-100/50 hover:bg-indigo-50" }
     ]
 
-    const totalDrafts = Object.values(draftsCount).reduce((a, b) => a + b, 0)
+    const totalDrafts = Object.values(draftsCount).reduce((a, b) => a + b, 0) + draftRegulationsCount
 
     return (
       <div className="card-surface p-6 bg-white space-y-4 text-left">
@@ -482,7 +620,7 @@ export function DashboardPage() {
           </span>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
           {draftModules.map((m) => (
             <div key={m.name} className={`p-4 rounded-xl border flex flex-col justify-between transition-colors ${m.bg}`}>
               <span className="text-[10px] font-bold uppercase text-text-muted">{m.name}</span>
@@ -862,26 +1000,31 @@ export function DashboardPage() {
                     </div>
                   </div>
 
-                  {/* Logs & Tasks */}
+                  {/* Logs & Tasks & Draft Regulation Monitoring */}
                   <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    <div className="lg:col-span-2 card-surface p-6 bg-white space-y-4">
-                      <h3 className="font-display font-bold text-sm text-text-primary flex items-center gap-2">
-                        <AlertTriangle className="h-4.5 w-4.5 text-amber-500" />
-                        <span>Log Aktivitas Sistem (Real-time Logs)</span>
-                      </h3>
-                       <div className="space-y-2.5 font-mono text-[11px] max-h-[220px] overflow-y-auto pr-1 bg-dark-base p-4 rounded-xl border border-dark-border text-text-secondary">
-                        {getCombinedActivities().length > 0 ? (
-                          getCombinedActivities().map((log, idx) => (
-                            <div key={idx} className="flex gap-2 text-left">
-                              <span className="text-text-muted">[{new Date(log.time).toLocaleTimeString("id-ID")}]</span>
-                              <span className={`${log.color} font-bold`}>[{log.label}]</span>
-                              <span className="text-text-primary">{log.text}</span>
-                            </div>
-                          ))
-                        ) : (
-                          <div className="text-text-muted py-4 text-center">Belum ada aktivitas log terbaru dari server.</div>
-                        )}
+                    <div className="lg:col-span-2 space-y-6">
+                      <div className="card-surface p-6 bg-white space-y-4">
+                        <h3 className="font-display font-bold text-sm text-text-primary flex items-center gap-2">
+                          <AlertTriangle className="h-4.5 w-4.5 text-amber-500" />
+                          <span>Log Aktivitas Sistem (Real-time Logs)</span>
+                        </h3>
+                         <div className="space-y-2.5 font-mono text-[11px] max-h-[220px] overflow-y-auto pr-1 bg-dark-base p-4 rounded-xl border border-dark-border text-text-secondary">
+                          {getCombinedActivities().length > 0 ? (
+                            getCombinedActivities().map((log, idx) => (
+                              <div key={idx} className="flex gap-2 text-left">
+                                <span className="text-text-muted">[{new Date(log.time).toLocaleTimeString("id-ID")}]</span>
+                                <span className={`${log.color} font-bold`}>[{log.label}]</span>
+                                <span className="text-text-primary">{log.text}</span>
+                              </div>
+                            ))
+                          ) : (
+                            <div className="text-text-muted py-4 text-center">Belum ada aktivitas log terbaru dari server.</div>
+                          )}
+                        </div>
                       </div>
+
+                      {/* Draft Regulations Monitoring Card for Operational View */}
+                      {renderDraftRegulationsCard()}
                     </div>
 
                     <div className="card-surface p-6 bg-white space-y-4">
@@ -1077,6 +1220,9 @@ export function DashboardPage() {
                 <div className="lg:col-span-2 space-y-6">
                   {/* Draft Monitoring Panel */}
                   {renderDraftsPanel()}
+
+                  {/* Draft Regulations Card */}
+                  {renderDraftRegulationsCard()}
 
                   {/* Operational Instructions */}
                   <div className="card-surface p-6 bg-white space-y-4">

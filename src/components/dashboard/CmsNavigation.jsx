@@ -25,7 +25,9 @@ import {
   Clock,
   Shield,
   Check,
-  AlertTriangle
+  AlertTriangle,
+  FileCheck,
+  FileText
 } from "lucide-react"
 import { navigationService, pageService } from "@/services/api.service"
 import { defaultNavigations, registeredRoutes } from "@/utils/defaultNavigation"
@@ -41,7 +43,9 @@ const iconMap = {
   Info,
   Globe,
   Compass,
-  ExternalLink
+  ExternalLink,
+  FileCheck,
+  FileText
 }
 
 export default function CmsNavigation({ role = "super_admin", showToast }) {
@@ -245,6 +249,20 @@ export default function CmsNavigation({ role = "super_admin", showToast }) {
       }
     }
 
+    // Internal URL duplicate path validation
+    if (formData.type === "internal") {
+      const normalizedNewPath = formData.path.trim().toLowerCase().replace(/\/+$/, "") || "/"
+      const isDuplicate = navigations.some((n) => {
+        if (n.type !== "internal") return false
+        const normalizedExisting = (n.path || "").trim().toLowerCase().replace(/\/+$/, "") || "/"
+        return normalizedExisting === normalizedNewPath
+      })
+      if (isDuplicate) {
+        setFormError(`Menu dengan path '${formData.path.trim()}' sudah terdaftar. Hindari duplikasi menu internal.`)
+        return
+      }
+    }
+
     setIsSubmitting(true)
     const newNav = {
       ...formData,
@@ -303,6 +321,21 @@ export default function CmsNavigation({ role = "super_admin", showToast }) {
         }
       } catch {
         setFormError("Format URL eksternal tidak valid. Contoh: https://instagram.com/terratech")
+        return
+      }
+    }
+
+    // Internal URL duplicate path validation on Edit
+    if (formData.type === "internal") {
+      const normalizedNewPath = formData.path.trim().toLowerCase().replace(/\/+$/, "") || "/"
+      const isDuplicate = navigations.some((n) => {
+        if (n.id === selectedItem?.id) return false
+        if (n.type !== "internal") return false
+        const normalizedExisting = (n.path || "").trim().toLowerCase().replace(/\/+$/, "") || "/"
+        return normalizedExisting === normalizedNewPath
+      })
+      if (isDuplicate) {
+        setFormError(`Menu dengan path '${formData.path.trim()}' sudah terdaftar. Hindari duplikasi menu internal.`)
         return
       }
     }
@@ -870,6 +903,8 @@ export default function CmsNavigation({ role = "super_admin", showToast }) {
                     <option value="Home">Home (Beranda)</option>
                     <option value="Briefcase">Briefcase (Layanan / Produk)</option>
                     <option value="FolderOpen">FolderOpen (Portofolio / Berkas)</option>
+                    <option value="FileCheck">FileCheck (Regulasi / Kebijakan)</option>
+                    <option value="FileText">FileText (Dokumen / Halaman)</option>
                     <option value="Phone">Phone (Kontak)</option>
                     <option value="Sparkles">Sparkles (Inovasi / AI)</option>
                     <option value="Layers">Layers (Alur / Layanan)</option>
