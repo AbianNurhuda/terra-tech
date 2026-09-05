@@ -10,6 +10,7 @@ import { ContactPage } from "@/pages/Contact"
 import { LoginPage } from "@/pages/Login"
 import { DashboardPage } from "@/pages/Dashboard"
 import { DynamicCmsPage } from "@/pages/DynamicCmsPage"
+import { RegulationPage } from "@/pages/Regulation"
 import { Routes, Route, useLocation } from "react-router-dom"
 
 function App() {
@@ -25,6 +26,7 @@ function App() {
         <Route path="/layanan" element={<ServicesPage />} />
         <Route path="/layanan/:serviceId" element={<ServiceDetailPage />} />
         <Route path="/portofolio" element={<PortfolioPage />} />
+        <Route path="/regulasi" element={<RegulationPage />} />
         <Route path="/kontak" element={<ContactPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/dashboard" element={<DashboardPage />} />

@@ -50,7 +50,9 @@ export const registeredRoutes = [
   { path: "/layanan", label: "Halaman Layanan / Produk" },
   { path: "/layanan/:serviceId", label: "Detail Layanan (Dinamis)" },
   { path: "/portofolio", label: "Halaman Portofolio" },
+  { path: "/regulasi", label: "Halaman Regulasi & Kebijakan" },
   { path: "/kontak", label: "Halaman Kontak" },
   { path: "/login", label: "Halaman Login Staf" },
   { path: "/dashboard", label: "Dashboard CMS" }
 ]
+

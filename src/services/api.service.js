@@ -444,6 +444,23 @@ export const regulationService = {
     return client.get(`cms/regulations${queryString}`)
   },
 
+  async getPublicRegulations(params = {}) {
+    const query = new URLSearchParams()
+    if (params.search) query.append("search", params.search.trim())
+    if (params.category && params.category !== "Semua" && params.category !== "all") {
+      query.append("category", params.category)
+    }
+    if (params.page) query.append("page", params.page)
+    if (params.per_page) query.append("per_page", params.per_page)
+
+    const queryString = query.toString() ? `?${query.toString()}` : ""
+    return client.get(`regulations${queryString}`)
+  },
+
+  async getPublicRegulation(slug) {
+    return client.get(`regulations/${encodeURIComponent(slug)}`)
+  },
+
   async getRegulation(id) {
     return client.get(`cms/regulations/${id}`)
   },
@@ -466,5 +483,6 @@ export const regulationService = {
     return client.delete(`cms/regulations/${id}`)
   }
 }
+
 
 
