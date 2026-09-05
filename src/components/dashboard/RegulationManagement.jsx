@@ -16,9 +16,22 @@ import {
   FileCheck,
   Globe,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Lock,
+  Info
 } from "lucide-react"
 import { regulationService } from "@/services/api.service"
+import RichTextEditor from "../ui/RichTextEditor"
+import RichTextContent from "../ui/RichTextContent"
+
+// TODO: system_document_number akan berasal dari backend setelah API contract tersedia.
+const generatePreviewSystemNumber = () => {
+  const today = new Date()
+  const dd = String(today.getDate()).padStart(2, "0")
+  const mm = String(today.getMonth() + 1).padStart(2, "0")
+  const yyyy = today.getFullYear()
+  return `REG-${dd}${mm}${yyyy}-001`
+}
 
 const CATEGORIES = [
   "Peraturan Menteri",
@@ -64,7 +77,8 @@ export default function RegulationManagement({ showToast, readOnly = false }) {
   const [formData, setFormData] = useState({
     title: "",
     category: CATEGORIES[0],
-    document_number: "",
+    system_document_number: "",
+    original_document_number: "",
     document_date: "",
     description: "",
     source_type: "file", // 'file' | 'url'
@@ -274,14 +288,16 @@ export default function RegulationManagement({ showToast, readOnly = false }) {
     setIsSubmitting(true)
     try {
       let res
+      const origNum = formData.original_document_number?.trim() || ""
       if (formData.source_type === "file") {
         const payload = new FormData()
         payload.append("title", formData.title.trim())
         if (formData.category) {
           payload.append("category", formData.category)
         }
-        if (formData.document_number?.trim()) {
-          payload.append("document_number", formData.document_number.trim())
+        if (origNum) {
+          payload.append("original_document_number", origNum)
+          payload.append("document_number", origNum)
         }
         if (formData.document_date) {
           payload.append("document_date", formData.document_date)
@@ -308,8 +324,9 @@ export default function RegulationManagement({ showToast, readOnly = false }) {
         if (formData.category) {
           payload.category = formData.category
         }
-        if (formData.document_number?.trim()) {
-          payload.document_number = formData.document_number.trim()
+        if (origNum) {
+          payload.original_document_number = origNum
+          payload.document_number = origNum
         }
         if (formData.document_date) {
           payload.document_date = formData.document_date
@@ -360,6 +377,7 @@ export default function RegulationManagement({ showToast, readOnly = false }) {
     setIsSubmitting(true)
     try {
       let res
+      const origNum = formData.original_document_number?.trim() || ""
       if (formData.source_type === "file" && formData.file) {
         // User replaced the PDF file -> use FormData
         const payload = new FormData()
@@ -367,8 +385,9 @@ export default function RegulationManagement({ showToast, readOnly = false }) {
         if (formData.category) {
           payload.append("category", formData.category)
         }
-        if (formData.document_number?.trim()) {
-          payload.append("document_number", formData.document_number.trim())
+        if (origNum) {
+          payload.append("original_document_number", origNum)
+          payload.append("document_number", origNum)
         }
         if (formData.document_date) {
           payload.append("document_date", formData.document_date)
@@ -393,8 +412,9 @@ export default function RegulationManagement({ showToast, readOnly = false }) {
         if (formData.category) {
           payload.category = formData.category
         }
-        if (formData.document_number?.trim()) {
-          payload.document_number = formData.document_number.trim()
+        if (origNum) {
+          payload.original_document_number = origNum
+          payload.document_number = origNum
         }
         if (formData.document_date) {
           payload.document_date = formData.document_date
@@ -472,16 +492,26 @@ export default function RegulationManagement({ showToast, readOnly = false }) {
     resetForm()
     setFormErrors({})
     setModalGeneralError("")
+    setFormData((prev) => ({
+      ...prev,
+      system_document_number: generatePreviewSystemNumber()
+    }))
     setIsAddOpen(true)
   }
 
   const openEditModal = (reg) => {
     setSelectedRegulation(reg)
     const isFile = reg.source_type === "file" || reg.source_type === "pdf" || reg.source_type === "upload"
+    const systemNum = reg.system_document_number || reg.document_number || "—"
+    const originalNum = reg.original_document_number !== undefined
+      ? reg.original_document_number
+      : (reg.document_number && reg.document_number !== systemNum && reg.document_number !== "—" ? reg.document_number : "")
+
     setFormData({
       title: reg.title || "",
       category: reg.category || CATEGORIES[0],
-      document_number: reg.document_number === "—" ? "" : reg.document_number || "",
+      system_document_number: systemNum === "—" ? generatePreviewSystemNumber() : systemNum,
+      original_document_number: originalNum === "—" ? "" : originalNum,
       document_date: reg.document_date ? reg.document_date.split("T")[0] : "",
       description: reg.description || "",
       source_type: isFile ? "file" : "url",
@@ -534,7 +564,8 @@ export default function RegulationManagement({ showToast, readOnly = false }) {
     setFormData({
       title: "",
       category: CATEGORIES[0],
-      document_number: "",
+      system_document_number: "",
+      original_document_number: "",
       document_date: "",
       description: "",
       source_type: "file",
@@ -787,7 +818,7 @@ export default function RegulationManagement({ showToast, readOnly = false }) {
                       </span>
                     </td>
                     <td className="py-4 px-4 font-mono text-[11px] text-text-secondary">
-                      {reg.document_number || "—"}
+                      {reg.original_document_number || reg.document_number || reg.system_document_number || "—"}
                     </td>
                     <td className="py-4 px-4">
                       {getSourceBadge(reg.source_type, reg.file_name)}
@@ -1028,64 +1059,89 @@ export default function RegulationManagement({ showToast, readOnly = false }) {
                 </div>
               </div>
 
-              {/* Nomor Dokumen & Tanggal Dokumen */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block font-bold text-text-primary mb-1">
-                    Nomor Dokumen
-                  </label>
+              {/* Nomor Dokumen System (Readonly) */}
+              <div>
+                <label className="block font-bold text-text-primary mb-1 flex items-center justify-between">
+                  <span>Nomor Dokumen System</span>
+                  <span className="text-[10px] text-text-muted flex items-center gap-1 font-normal">
+                    <Lock className="h-3 w-3 text-text-muted" /> Otomatis
+                  </span>
+                </label>
+                <div className="relative">
                   <input
                     type="text"
-                    placeholder="Contoh: PERMEN-ESDM/12/2025"
-                    value={formData.document_number}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        document_number: e.target.value
-                      })
-                    }
-                    className={`w-full px-3.5 py-2.5 rounded-xl border ${
-                      formErrors.document_number
-                        ? "border-rose-400 bg-rose-50/20"
-                        : "border-dark-border bg-dark-base"
-                    } text-text-primary placeholder:text-text-muted/60 focus:outline-none focus:border-accent-cyan`}
+                    readOnly
+                    disabled
+                    value={formData.system_document_number || "REG-01092026-001"}
+                    className="w-full pl-3.5 pr-9 py-2.5 rounded-xl border border-dark-border bg-dark-base/70 text-text-muted font-mono cursor-not-allowed select-none focus:outline-none"
                   />
-                  {formErrors.document_number && (
-                    <span className="text-[11px] text-rose-500 mt-1 block">
-                      {Array.isArray(formErrors.document_number)
-                        ? formErrors.document_number.join(", ")
-                        : formErrors.document_number}
-                    </span>
-                  )}
+                  <Lock className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-text-muted" />
                 </div>
+                <p className="text-[11px] text-text-muted mt-1">
+                  Nomor dibuat otomatis oleh sistem.
+                </p>
+              </div>
 
-                <div>
-                  <label className="block font-bold text-text-primary mb-1">
-                    Tanggal Dokumen
-                  </label>
-                  <input
-                    type="date"
-                    value={formData.document_date}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        document_date: e.target.value
-                      })
-                    }
-                    className={`w-full px-3.5 py-2.5 rounded-xl border ${
-                      formErrors.document_date
-                        ? "border-rose-400 bg-rose-50/20"
-                        : "border-dark-border bg-dark-base"
-                    } text-text-primary focus:outline-none focus:border-accent-cyan`}
-                  />
-                  {formErrors.document_date && (
-                    <span className="text-[11px] text-rose-500 mt-1 block">
-                      {Array.isArray(formErrors.document_date)
-                        ? formErrors.document_date.join(", ")
-                        : formErrors.document_date}
-                    </span>
-                  )}
-                </div>
+              {/* Nomor Dokumen Asli (Optional) */}
+              <div>
+                <label className="block font-bold text-text-primary mb-1">
+                  Nomor Dokumen Asli
+                </label>
+                <input
+                  type="text"
+                  placeholder="Contoh: PERMEN-ESDM/12/2025"
+                  value={formData.original_document_number}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      original_document_number: e.target.value
+                    })
+                  }
+                  className={`w-full px-3.5 py-2.5 rounded-xl border ${
+                    formErrors.original_document_number
+                      ? "border-rose-400 bg-rose-50/20"
+                      : "border-dark-border bg-dark-base"
+                  } text-text-primary placeholder:text-text-muted/60 focus:outline-none focus:border-accent-cyan`}
+                />
+                <p className="text-[11px] text-text-muted mt-1">
+                  Nomor yang tercantum pada dokumen resmi.
+                </p>
+                {formErrors.original_document_number && (
+                  <span className="text-[11px] text-rose-500 mt-1 block">
+                    {Array.isArray(formErrors.original_document_number)
+                      ? formErrors.original_document_number.join(", ")
+                      : formErrors.original_document_number}
+                  </span>
+                )}
+              </div>
+
+              {/* Tanggal Dokumen */}
+              <div>
+                <label className="block font-bold text-text-primary mb-1">
+                  Tanggal Dokumen
+                </label>
+                <input
+                  type="date"
+                  value={formData.document_date}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      document_date: e.target.value
+                    })
+                  }
+                  className={`w-full px-3.5 py-2.5 rounded-xl border ${
+                    formErrors.document_date
+                      ? "border-rose-400 bg-rose-50/20"
+                      : "border-dark-border bg-dark-base"
+                  } text-text-primary focus:outline-none focus:border-accent-cyan`}
+                />
+                {formErrors.document_date && (
+                  <span className="text-[11px] text-rose-500 mt-1 block">
+                    {Array.isArray(formErrors.document_date)
+                      ? formErrors.document_date.join(", ")
+                      : formErrors.document_date}
+                  </span>
+                )}
               </div>
 
               {/* Deskripsi */}
@@ -1093,26 +1149,16 @@ export default function RegulationManagement({ showToast, readOnly = false }) {
                 <label className="block font-bold text-text-primary mb-1">
                   Deskripsi / Ringkasan
                 </label>
-                <textarea
-                  rows={2}
-                  placeholder="Ringkasan poin utama regulasi atau pedoman terkait..."
+                {/* TODO: Konfirmasi backend content format sebelum production rollout. */}
+                <RichTextEditor
                   value={formData.description}
-                  onChange={(e) =>
-                    setFormData({ ...formData, description: e.target.value })
+                  onChange={(description) =>
+                    setFormData({ ...formData, description })
                   }
-                  className={`w-full px-3.5 py-2 rounded-xl border ${
-                    formErrors.description
-                      ? "border-rose-400 bg-rose-50/20"
-                      : "border-dark-border bg-dark-base"
-                  } text-text-primary placeholder:text-text-muted/60 focus:outline-none focus:border-accent-cyan`}
+                  placeholder="Ringkasan poin utama regulasi atau pedoman terkait..."
+                  error={formErrors.description}
+                  minHeight="160px"
                 />
-                {formErrors.description && (
-                  <span className="text-[11px] text-rose-500 mt-1 block">
-                    {Array.isArray(formErrors.description)
-                      ? formErrors.description.join(", ")
-                      : formErrors.description}
-                  </span>
-                )}
               </div>
 
               {/* Source Type Toggle */}
@@ -1403,63 +1449,89 @@ export default function RegulationManagement({ showToast, readOnly = false }) {
                 </div>
               </div>
 
-              {/* Nomor Dokumen & Tanggal Dokumen */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block font-bold text-text-primary mb-1">
-                    Nomor Dokumen
-                  </label>
+              {/* Nomor Dokumen System (Readonly) */}
+              <div>
+                <label className="block font-bold text-text-primary mb-1 flex items-center justify-between">
+                  <span>Nomor Dokumen System</span>
+                  <span className="text-[10px] text-text-muted flex items-center gap-1 font-normal">
+                    <Lock className="h-3 w-3 text-text-muted" /> Otomatis
+                  </span>
+                </label>
+                <div className="relative">
                   <input
                     type="text"
-                    value={formData.document_number}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        document_number: e.target.value
-                      })
-                    }
-                    className={`w-full px-3.5 py-2.5 rounded-xl border ${
-                      formErrors.document_number
-                        ? "border-rose-400 bg-rose-50/20"
-                        : "border-dark-border bg-dark-base"
-                    } text-text-primary focus:outline-none focus:border-accent-cyan`}
+                    readOnly
+                    disabled
+                    value={formData.system_document_number || "REG-01092026-001"}
+                    className="w-full pl-3.5 pr-9 py-2.5 rounded-xl border border-dark-border bg-dark-base/70 text-text-muted font-mono cursor-not-allowed select-none focus:outline-none"
                   />
-                  {formErrors.document_number && (
-                    <span className="text-[11px] text-rose-500 mt-1 block">
-                      {Array.isArray(formErrors.document_number)
-                        ? formErrors.document_number.join(", ")
-                        : formErrors.document_number}
-                    </span>
-                  )}
+                  <Lock className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-text-muted" />
                 </div>
+                <p className="text-[11px] text-text-muted mt-1">
+                  Nomor dibuat otomatis oleh sistem.
+                </p>
+              </div>
 
-                <div>
-                  <label className="block font-bold text-text-primary mb-1">
-                    Tanggal Dokumen
-                  </label>
-                  <input
-                    type="date"
-                    value={formData.document_date}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        document_date: e.target.value
-                      })
-                    }
-                    className={`w-full px-3.5 py-2.5 rounded-xl border ${
-                      formErrors.document_date
-                        ? "border-rose-400 bg-rose-50/20"
-                        : "border-dark-border bg-dark-base"
-                    } text-text-primary focus:outline-none focus:border-accent-cyan`}
-                  />
-                  {formErrors.document_date && (
-                    <span className="text-[11px] text-rose-500 mt-1 block">
-                      {Array.isArray(formErrors.document_date)
-                        ? formErrors.document_date.join(", ")
-                        : formErrors.document_date}
-                    </span>
-                  )}
-                </div>
+              {/* Nomor Dokumen Asli (Optional) */}
+              <div>
+                <label className="block font-bold text-text-primary mb-1">
+                  Nomor Dokumen Asli
+                </label>
+                <input
+                  type="text"
+                  placeholder="Contoh: PERMEN-ESDM/12/2025"
+                  value={formData.original_document_number}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      original_document_number: e.target.value
+                    })
+                  }
+                  className={`w-full px-3.5 py-2.5 rounded-xl border ${
+                    formErrors.original_document_number
+                      ? "border-rose-400 bg-rose-50/20"
+                      : "border-dark-border bg-dark-base"
+                  } text-text-primary placeholder:text-text-muted/60 focus:outline-none focus:border-accent-cyan`}
+                />
+                <p className="text-[11px] text-text-muted mt-1">
+                  Nomor yang tercantum pada dokumen resmi.
+                </p>
+                {formErrors.original_document_number && (
+                  <span className="text-[11px] text-rose-500 mt-1 block">
+                    {Array.isArray(formErrors.original_document_number)
+                      ? formErrors.original_document_number.join(", ")
+                      : formErrors.original_document_number}
+                  </span>
+                )}
+              </div>
+
+              {/* Tanggal Dokumen */}
+              <div>
+                <label className="block font-bold text-text-primary mb-1">
+                  Tanggal Dokumen
+                </label>
+                <input
+                  type="date"
+                  value={formData.document_date}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      document_date: e.target.value
+                    })
+                  }
+                  className={`w-full px-3.5 py-2.5 rounded-xl border ${
+                    formErrors.document_date
+                      ? "border-rose-400 bg-rose-50/20"
+                      : "border-dark-border bg-dark-base"
+                  } text-text-primary focus:outline-none focus:border-accent-cyan`}
+                />
+                {formErrors.document_date && (
+                  <span className="text-[11px] text-rose-500 mt-1 block">
+                    {Array.isArray(formErrors.document_date)
+                      ? formErrors.document_date.join(", ")
+                      : formErrors.document_date}
+                  </span>
+                )}
               </div>
 
               {/* Deskripsi */}
@@ -1467,25 +1539,16 @@ export default function RegulationManagement({ showToast, readOnly = false }) {
                 <label className="block font-bold text-text-primary mb-1">
                   Deskripsi / Ringkasan
                 </label>
-                <textarea
-                  rows={2}
+                {/* TODO: Konfirmasi backend content format sebelum production rollout. */}
+                <RichTextEditor
                   value={formData.description}
-                  onChange={(e) =>
-                    setFormData({ ...formData, description: e.target.value })
+                  onChange={(description) =>
+                    setFormData({ ...formData, description })
                   }
-                  className={`w-full px-3.5 py-2 rounded-xl border ${
-                    formErrors.description
-                      ? "border-rose-400 bg-rose-50/20"
-                      : "border-dark-border bg-dark-base"
-                  } text-text-primary focus:outline-none focus:border-accent-cyan`}
+                  placeholder="Ringkasan poin utama regulasi atau pedoman terkait..."
+                  error={formErrors.description}
+                  minHeight="160px"
                 />
-                {formErrors.description && (
-                  <span className="text-[11px] text-rose-500 mt-1 block">
-                    {Array.isArray(formErrors.description)
-                      ? formErrors.description.join(", ")
-                      : formErrors.description}
-                  </span>
-                )}
               </div>
 
               {/* Source Type Toggle */}
@@ -1741,21 +1804,29 @@ export default function RegulationManagement({ showToast, readOnly = false }) {
                   </h4>
                 </div>
 
-                {/* Number & Date */}
-                <div className="grid grid-cols-2 gap-3 p-3 bg-dark-base rounded-xl border border-dark-border">
+                {/* Numbers & Date */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-3 bg-dark-base rounded-xl border border-dark-border">
                   <div>
                     <span className="text-[10px] font-bold text-text-muted block">
-                      Nomor Dokumen
+                      Nomor Dokumen System
                     </span>
-                    <span className="font-mono font-bold text-text-primary mt-0.5 block">
-                      {activeDetail.document_number || "—"}
+                    <span className="font-mono font-bold text-text-primary mt-0.5 block text-[11px]">
+                      {activeDetail.system_document_number || activeDetail.document_number || "—"}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-bold text-text-muted block">
+                      Nomor Dokumen Asli
+                    </span>
+                    <span className="font-mono font-bold text-text-primary mt-0.5 block text-[11px]">
+                      {activeDetail.original_document_number || "—"}
                     </span>
                   </div>
                   <div>
                     <span className="text-[10px] font-bold text-text-muted block">
                       Tanggal Dokumen
                     </span>
-                    <span className="font-semibold text-text-primary mt-0.5 block">
+                    <span className="font-semibold text-text-primary mt-0.5 block text-[11px]">
                       {activeDetail.document_date
                         ? new Date(activeDetail.document_date).toLocaleDateString(
                             "id-ID",
@@ -1772,9 +1843,10 @@ export default function RegulationManagement({ showToast, readOnly = false }) {
                     <span className="text-[10px] font-bold uppercase text-text-muted block mb-1">
                       Deskripsi / Ringkasan
                     </span>
-                    <p className="p-3 bg-dark-base/50 rounded-xl border border-dark-border text-text-secondary leading-relaxed">
-                      {activeDetail.description}
-                    </p>
+                    <RichTextContent
+                      content={activeDetail.description}
+                      className="p-3 bg-dark-base/50 rounded-xl border border-dark-border text-text-secondary leading-relaxed"
+                    />
                   </div>
                 )}
 

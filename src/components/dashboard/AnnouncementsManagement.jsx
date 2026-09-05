@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react"
 import { Search, Plus, Edit2, Trash2, Eye, X, AlertCircle, Megaphone, Paperclip, FileText, Download } from "lucide-react"
+import RichTextEditor from "../ui/RichTextEditor"
+import RichTextContent from "../ui/RichTextContent"
 
 export default function AnnouncementsManagement({ showToast, readOnly = false }) {
   const [announcements, setAnnouncements] = useState([])
@@ -409,12 +411,11 @@ export default function AnnouncementsManagement({ showToast, readOnly = false })
 
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold text-text-secondary">Konten Pengumuman</label>
-                <textarea
-                  rows="7"
+                <RichTextEditor
                   value={formData.content}
-                  onChange={(e) => setFormData({ ...formData, content: e.target.value })}
+                  onChange={(content) => setFormData({ ...formData, content })}
                   placeholder="Ketik isi pengumuman untuk staf secara detail..."
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-dark-border text-xs focus:outline-none resize-none leading-relaxed"
+                  minHeight="180px"
                 />
               </div>
 
@@ -533,11 +534,11 @@ export default function AnnouncementsManagement({ showToast, readOnly = false })
 
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold text-text-secondary">Konten Pengumuman</label>
-                <textarea
-                  rows="7"
+                <RichTextEditor
                   value={formData.content}
-                  onChange={(e) => setFormData({ ...formData, content: e.target.value })}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-dark-border text-xs focus:outline-none resize-none leading-relaxed"
+                  onChange={(content) => setFormData({ ...formData, content })}
+                  placeholder="Ketik isi pengumuman untuk staf secara detail..."
+                  minHeight="180px"
                 />
               </div>
 
@@ -636,9 +637,10 @@ export default function AnnouncementsManagement({ showToast, readOnly = false })
                 <span>Status: <strong>{selectedAnn?.status}</strong></span>
               </div>
 
-              <p className="whitespace-pre-wrap leading-relaxed text-text-primary leading-loose">
-                {selectedAnn?.content}
-              </p>
+              <RichTextContent
+                content={selectedAnn?.content}
+                className="text-text-primary leading-relaxed text-xs"
+              />
 
               {/* View/Download attachment block */}
               {selectedAnn?.attachmentName && (

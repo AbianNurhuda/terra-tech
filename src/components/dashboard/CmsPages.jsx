@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react"
 import { AlertCircle, CheckCircle2, Edit2, Eye, FileText, Plus, RefreshCw, Search, Trash2, X } from "lucide-react"
 import { pageService } from "@/services/api.service"
+import RichTextEditor from "../ui/RichTextEditor"
+import RichTextContent from "../ui/RichTextContent"
 
 const initialForm = { title: "", slug: "", content: "", status: "draft" }
 
@@ -183,9 +185,111 @@ export default function CmsPages({ role = "operator", showToast }) {
         </div>
       )}
 
-      {modal === "form" && <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-text-primary/40 backdrop-blur-sm"><div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-6 space-y-5 max-h-[90vh] overflow-y-auto"><div className="flex justify-between items-center border-b border-dark-border pb-3"><h3 className="font-bold text-base text-text-primary">{selectedPage ? "Edit Halaman" : "Tambah Halaman"}</h3><button onClick={() => setModal(null)} title="Tutup"><X className="h-5 w-5" /></button></div>{formErrors.form && <div className="p-3 rounded-xl bg-rose-50 text-rose-700 text-xs flex gap-2"><AlertCircle className="h-4 w-4 shrink-0" />{formErrors.form}</div>}<form onSubmit={handleSubmit} className="space-y-4"><div><label className="text-xs font-semibold text-text-secondary">Title</label><input value={form.title} onChange={(event) => setForm({ ...form, title: event.target.value })} className="w-full mt-1 px-3 py-2 text-xs rounded-xl border border-dark-border" />{formErrors.title && <p className="text-[11px] text-rose-600 mt-1">{formErrors.title}</p>}</div><div><label className="text-xs font-semibold text-text-secondary">Slug</label><input value={form.slug} onChange={(event) => setForm({ ...form, slug: event.target.value })} placeholder="tentang-kami" className="w-full mt-1 px-3 py-2 text-xs rounded-xl border border-dark-border font-mono" />{formErrors.slug && <p className="text-[11px] text-rose-600 mt-1">{formErrors.slug}</p>}</div><div><label className="text-xs font-semibold text-text-secondary">Content</label><textarea value={form.content} onChange={(event) => setForm({ ...form, content: event.target.value })} rows={8} className="w-full mt-1 px-3 py-2 text-xs rounded-xl border border-dark-border resize-y" />{formErrors.content && <p className="text-[11px] text-rose-600 mt-1">{formErrors.content}</p>}</div><div><label className="text-xs font-semibold text-text-secondary">Status</label><select value={form.status} onChange={(event) => setForm({ ...form, status: event.target.value })} className="w-full mt-1 px-3 py-2 text-xs rounded-xl border border-dark-border"><option value="draft">Draft</option><option value="published">Published</option><option value="inactive">Inactive</option></select></div><div className="flex justify-end gap-2 pt-3 border-t border-dark-border"><button type="button" onClick={() => setModal(null)} className="px-4 py-2 rounded-xl border border-dark-border text-xs font-bold">Batal</button><button disabled={isSubmitting} className="px-5 py-2 rounded-xl bg-accent-cyan text-white text-xs font-bold disabled:opacity-60">{isSubmitting ? "Menyimpan..." : "Simpan"}</button></div></form></div></div>}
-      {modal === "preview" && selectedPage && <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-text-primary/40 backdrop-blur-sm"><div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto"><div className="flex justify-between items-center"><h3 className="font-bold text-lg text-text-primary">{selectedPage.title}</h3><button onClick={() => setModal(null)} title="Tutup"><X className="h-5 w-5" /></button></div><p className="font-mono text-xs text-accent-cyan">/{selectedPage.slug}</p><div className="whitespace-pre-wrap text-sm text-text-secondary leading-relaxed">{selectedPage.content}</div></div></div>}
-      {modal === "delete" && selectedPage && <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-text-primary/40 backdrop-blur-sm"><div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 space-y-4"><div className="flex items-center gap-3 text-rose-500"><AlertCircle className="h-6 w-6" /><h3 className="font-bold text-sm text-text-primary">Hapus halaman?</h3></div><p className="text-xs text-text-secondary">Halaman <strong>{selectedPage.title}</strong> akan dihapus melalui API backend.</p><div className="flex justify-end gap-2"><button onClick={() => setModal(null)} className="px-4 py-2 rounded-xl border border-dark-border text-xs font-bold">Batal</button><button onClick={handleDelete} disabled={isSubmitting} className="px-4 py-2 rounded-xl bg-rose-500 text-white text-xs font-bold disabled:opacity-60">{isSubmitting ? "Menghapus..." : "Ya, Hapus"}</button></div></div></div>}
+      {modal === "form" && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-text-primary/40 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full p-6 space-y-5 max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center border-b border-dark-border pb-3">
+              <h3 className="font-bold text-base text-text-primary">{selectedPage ? "Edit Halaman" : "Tambah Halaman"}</h3>
+              <button onClick={() => setModal(null)} title="Tutup">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            {formErrors.form && (
+              <div className="p-3 rounded-xl bg-rose-50 text-rose-700 text-xs flex gap-2">
+                <AlertCircle className="h-4 w-4 shrink-0" />
+                {formErrors.form}
+              </div>
+            )}
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <label className="text-xs font-semibold text-text-secondary">Title</label>
+                <input
+                  value={form.title}
+                  onChange={(event) => setForm({ ...form, title: event.target.value })}
+                  className="w-full mt-1 px-3 py-2 text-xs rounded-xl border border-dark-border"
+                />
+                {formErrors.title && <p className="text-[11px] text-rose-600 mt-1">{formErrors.title}</p>}
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-text-secondary">Slug</label>
+                <input
+                  value={form.slug}
+                  onChange={(event) => setForm({ ...form, slug: event.target.value })}
+                  placeholder="tentang-kami"
+                  className="w-full mt-1 px-3 py-2 text-xs rounded-xl border border-dark-border font-mono"
+                />
+                {formErrors.slug && <p className="text-[11px] text-rose-600 mt-1">{formErrors.slug}</p>}
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-text-secondary">Content</label>
+                <div className="mt-1">
+                  <RichTextEditor
+                    value={form.content}
+                    onChange={(content) => setForm({ ...form, content })}
+                    placeholder="Tulis konten halaman secara lengkap di sini..."
+                    error={formErrors.content}
+                    minHeight="220px"
+                  />
+                </div>
+                {formErrors.content && <p className="text-[11px] text-rose-600 mt-1">{formErrors.content}</p>}
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-text-secondary">Status</label>
+                <select
+                  value={form.status}
+                  onChange={(event) => setForm({ ...form, status: event.target.value })}
+                  className="w-full mt-1 px-3 py-2 text-xs rounded-xl border border-dark-border"
+                >
+                  <option value="draft">Draft</option>
+                  <option value="published">Published</option>
+                  <option value="inactive">Inactive</option>
+                </select>
+              </div>
+              <div className="flex justify-end gap-2 pt-3 border-t border-dark-border">
+                <button type="button" onClick={() => setModal(null)} className="px-4 py-2 rounded-xl border border-dark-border text-xs font-bold">
+                  Batal
+                </button>
+                <button disabled={isSubmitting} className="px-5 py-2 rounded-xl bg-accent-cyan text-white text-xs font-bold disabled:opacity-60">
+                  {isSubmitting ? "Menyimpan..." : "Simpan"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+      {modal === "preview" && selectedPage && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-text-primary/40 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center">
+              <h3 className="font-bold text-lg text-text-primary">{selectedPage.title}</h3>
+              <button onClick={() => setModal(null)} title="Tutup">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <p className="font-mono text-xs text-accent-cyan">/{selectedPage.slug}</p>
+            <RichTextContent content={selectedPage.content} className="text-sm text-text-secondary leading-relaxed" />
+          </div>
+        </div>
+      )}
+      {modal === "delete" && selectedPage && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-text-primary/40 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 space-y-4">
+            <div className="flex items-center gap-3 text-rose-500">
+              <AlertCircle className="h-6 w-6" />
+              <h3 className="font-bold text-sm text-text-primary">Hapus halaman?</h3>
+            </div>
+            <p className="text-xs text-text-secondary">Halaman <strong>{selectedPage.title}</strong> akan dihapus melalui API backend.</p>
+            <div className="flex justify-end gap-2">
+              <button onClick={() => setModal(null)} className="px-4 py-2 rounded-xl border border-dark-border text-xs font-bold">
+                Batal
+              </button>
+              <button onClick={handleDelete} disabled={isSubmitting} className="px-4 py-2 rounded-xl bg-rose-500 text-white text-xs font-bold disabled:opacity-60">
+                {isSubmitting ? "Menghapus..." : "Ya, Hapus"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

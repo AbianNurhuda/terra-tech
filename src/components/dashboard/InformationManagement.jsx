@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react"
 import { Search, Plus, Edit2, Trash2, Eye, X, AlertCircle, Tags, BookOpen, Layers } from "lucide-react"
+import RichTextEditor from "../ui/RichTextEditor"
+import RichTextContent from "../ui/RichTextContent"
 
 export default function InformationManagement({ showToast, readOnly = false }) {
   const [articles, setArticles] = useState([])
@@ -371,12 +373,11 @@ export default function InformationManagement({ showToast, readOnly = false }) {
               </div>
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold text-text-secondary">Isi Konten Artikel</label>
-                <textarea
-                  rows="10"
+                <RichTextEditor
                   value={formData.content}
-                  onChange={(e) => setFormData({ ...formData, content: e.target.value })}
+                  onChange={(content) => setFormData({ ...formData, content })}
                   placeholder="Ketik isi artikel secara lengkap di sini..."
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-dark-border text-xs focus:outline-none leading-relaxed resize-none"
+                  minHeight="200px"
                 />
               </div>
               <div className="flex justify-between items-center pt-4">
@@ -454,11 +455,11 @@ export default function InformationManagement({ showToast, readOnly = false }) {
               </div>
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold text-text-secondary">Isi Konten Artikel</label>
-                <textarea
-                  rows="10"
+                <RichTextEditor
                   value={formData.content}
-                  onChange={(e) => setFormData({ ...formData, content: e.target.value })}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-dark-border text-xs focus:outline-none leading-relaxed resize-none"
+                  onChange={(content) => setFormData({ ...formData, content })}
+                  placeholder="Ketik isi artikel secara lengkap di sini..."
+                  minHeight="200px"
                 />
               </div>
               <div className="flex justify-between items-center pt-4">
@@ -517,9 +518,10 @@ export default function InformationManagement({ showToast, readOnly = false }) {
                 <span>•</span>
                 <span>Status: <strong>{selectedArticle?.status}</strong></span>
               </div>
-              <p className="whitespace-pre-wrap leading-loose text-text-primary">
-                {selectedArticle?.content}
-              </p>
+              <RichTextContent
+                content={selectedArticle?.content}
+                className="text-text-primary leading-relaxed text-xs"
+              />
             </div>
             <div className="px-6 py-4 bg-dark-base/50 border-t border-dark-border flex justify-end">
               <button
