@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useEffect, useState, useCallback } from "react"
 import { useNavigate } from "react-router-dom"
 import { authService, dashboardService, regulationService } from "@/services/api.service"
 import {
@@ -35,11 +35,15 @@ import {
   Activity,
   Compass,
   FileText,
-  FileCheck
+  FileCheck,
+  ShieldCheck,
+  ChevronDown,
+  ChevronRight
 } from "lucide-react"
 
 // Import Super Admin Subviews
 import UsersManagement from "@/components/dashboard/UsersManagement"
+import RolePermissionManagement from "@/components/dashboard/RolePermissionManagement"
 import CompanyProfileConfig from "@/components/dashboard/CompanyProfileConfig"
 import InformationManagement from "@/components/dashboard/InformationManagement"
 import AnnouncementsManagement from "@/components/dashboard/AnnouncementsManagement"
@@ -96,6 +100,181 @@ export function DashboardPage() {
   const [draftRegulations, setDraftRegulations] = useState([])
   const [draftRegulationsCount, setDraftRegulationsCount] = useState(0)
   const [draftRegulationsLoading, setDraftRegulationsLoading] = useState(false)
+
+  // Collapsible sidebar groups state
+  const [expandedGroups, setExpandedGroups] = useState({
+    KONTEN: false,
+    MANAJEMEN: true,
+    PENGATURAN: true
+  })
+
+  const toggleGroup = (groupLabel) => {
+    setExpandedGroups((prev) => ({
+      ...prev,
+      [groupLabel]: !prev[groupLabel]
+    }))
+  }
+
+  // Define sidebar navigation groups per role
+  const getNavGroups = useCallback(() => {
+    switch (role) {
+      case "super_admin":
+        return [
+          {
+            label: "UTAMA",
+            collapsible: false,
+            items: [
+              { name: "Ringkasan", icon: Home }
+            ]
+          },
+          {
+            label: "KONTEN",
+            collapsible: true,
+            items: [
+              { name: "Informasi Perusahaan", icon: FileEdit },
+              { name: "Pengumuman Staf", icon: Megaphone },
+              { name: "Timeline & Milestone", icon: Calendar },
+              { name: "Dokumen & File", icon: FolderOpen },
+              { name: "Regulasi", icon: FileCheck },
+              { name: "Kategori Dokumen", icon: Tags },
+              { name: "CMS Halaman Utama", icon: BookOpen },
+              { name: "CMS Navigasi", icon: Compass },
+              { name: "CMS Pages", icon: FileText }
+            ]
+          },
+          {
+            label: "MANAJEMEN",
+            collapsible: true,
+            items: [
+              { name: "Kelola Pengguna", icon: Users }
+            ]
+          },
+          {
+            label: "PENGATURAN",
+            collapsible: true,
+            items: [
+              { name: "Profil Perusahaan", icon: Building2 },
+              { name: "Role & Matriks Permission", icon: ShieldCheck }
+            ]
+          }
+        ]
+      case "admin":
+        return [
+          {
+            label: "UTAMA",
+            collapsible: false,
+            items: [
+              { name: "Dashboard Operasional", icon: Home }
+            ]
+          },
+          {
+            label: "KONTEN",
+            collapsible: true,
+            items: [
+              { name: "Manajemen Informasi", icon: FileEdit },
+              { name: "Manajemen Pengumuman", icon: Megaphone },
+              { name: "Manajemen Timeline", icon: Calendar },
+              { name: "Manajemen Dokumen File", icon: FolderOpen },
+              { name: "Manajemen Regulasi", icon: FileCheck },
+              { name: "Manajemen Kategori File", icon: Tags },
+              { name: "Manajemen Alur Pendaftaran", icon: Layers },
+              { name: "CMS Halaman Utama", icon: BookOpen },
+              { name: "CMS Navigasi", icon: Compass },
+              { name: "CMS Pages", icon: FileText }
+            ]
+          },
+          {
+            label: "MANAJEMEN",
+            collapsible: true,
+            items: [
+              { name: "Akun Saya", icon: User }
+            ]
+          },
+          {
+            label: "PENGATURAN",
+            collapsible: true,
+            items: [
+              { name: "Profil Perusahaan", icon: Building2 },
+              { name: "Role & Matriks Permission", icon: ShieldCheck }
+            ]
+          }
+        ]
+      case "operator":
+        return [
+          {
+            label: "UTAMA",
+            collapsible: false,
+            items: [
+              { name: "Ringkasan", icon: Home },
+              { name: "Dashboard Operasional", icon: BarChart3 }
+            ]
+          },
+          {
+            label: "KONTEN",
+            collapsible: true,
+            items: [
+              { name: "Lihat Informasi", icon: FileEdit },
+              { name: "Manajemen Pengumuman", icon: Megaphone },
+              { name: "Manajemen Timeline", icon: Calendar },
+              { name: "Manajemen Dokumen File", icon: FolderOpen },
+              { name: "Manajemen Regulasi", icon: FileCheck },
+              { name: "Manajemen Alur Pendaftaran", icon: Layers },
+              { name: "CMS Halaman Utama", icon: BookOpen },
+              { name: "CMS Navigasi", icon: Compass },
+              { name: "CMS Pages", icon: FileText }
+            ]
+          }
+        ]
+      case "editor":
+        return [
+          {
+            label: "UTAMA",
+            collapsible: false,
+            items: [
+              { name: "Dashboard Operasional", icon: Home }
+            ]
+          },
+          {
+            label: "KONTEN",
+            collapsible: true,
+            items: [
+              { name: "Manajemen Informasi", icon: FileEdit },
+              { name: "Manajemen Pengumuman", icon: Megaphone },
+              { name: "Manajemen Timeline", icon: Calendar },
+              { name: "Manajemen Dokumen File", icon: FolderOpen },
+              { name: "Manajemen Regulasi", icon: FileCheck },
+              { name: "Manajemen Kategori File", icon: Tags },
+              { name: "Manajemen Alur Pendaftaran", icon: Layers },
+              { name: "CMS Halaman Utama", icon: BookOpen },
+              { name: "CMS Navigasi", icon: Compass },
+              { name: "CMS Pages", icon: FileText }
+            ]
+          }
+        ]
+      default:
+        return [
+          {
+            label: "UTAMA",
+            collapsible: false,
+            items: [
+              { name: "Ringkasan", icon: Home }
+            ]
+          }
+        ]
+    }
+  }, [role])
+
+  // Auto-expand group if active tab belongs to a collapsed group
+  useEffect(() => {
+    const groups = getNavGroups()
+    const activeGroup = groups.find((g) => g.items.some((item) => item.name === activeTab))
+    if (activeGroup && activeGroup.collapsible) {
+      setExpandedGroups((prev) => ({
+        ...prev,
+        [activeGroup.label]: true
+      }))
+    }
+  }, [activeTab, getNavGroups])
 
   const showToast = (message, type = "success") => {
     setToast({ message, type })
@@ -358,76 +537,6 @@ export function DashboardPage() {
       </div>
     )
   }
-  // Define sidebar navigation links per role
-  const getNavLinks = () => {
-    const common = [
-      { name: "Ringkasan", icon: Home },
-    ]
-
-    switch (role) {
-      case "super_admin":
-        return [
-          { name: "Ringkasan", icon: Home },
-          { name: "Kelola Pengguna", icon: Users },
-          { name: "Profil Perusahaan", icon: Building2 },
-          { name: "Informasi Perusahaan", icon: FileEdit },
-          { name: "Pengumuman Staf", icon: Megaphone },
-          { name: "Timeline & Milestone", icon: Calendar },
-          { name: "Dokumen & File", icon: FolderOpen },
-          { name: "Regulasi", icon: FileCheck },
-          { name: "Kategori Dokumen", icon: Tags },
-          { name: "CMS Halaman Utama", icon: BookOpen },
-          { name: "CMS Navigasi", icon: Compass },
-          { name: "CMS Pages", icon: FileText }
-        ]
-      case "admin":
-        return [
-          { name: "Dashboard Operasional", icon: Home },
-          { name: "Profil Perusahaan", icon: Building2 },
-          { name: "Manajemen Informasi", icon: FileEdit },
-          { name: "Manajemen Pengumuman", icon: Megaphone },
-          { name: "Manajemen Timeline", icon: Calendar },
-          { name: "Manajemen Dokumen File", icon: FolderOpen },
-          { name: "Manajemen Regulasi", icon: FileCheck },
-          { name: "Manajemen Kategori File", icon: Tags },
-          { name: "Manajemen Alur Pendaftaran", icon: Layers },
-          { name: "CMS Halaman Utama", icon: BookOpen },
-          { name: "CMS Navigasi", icon: Compass },
-          { name: "CMS Pages", icon: FileText },
-          { name: "Akun Saya", icon: User },
-        ]
-      case "operator":
-        return [
-          { name: "Ringkasan", icon: Home },
-          { name: "Dashboard Operasional", icon: BarChart3 },
-          { name: "Lihat Informasi", icon: FileEdit },
-          { name: "Manajemen Pengumuman", icon: Megaphone },
-          { name: "Manajemen Timeline", icon: Calendar },
-          { name: "Manajemen Dokumen File", icon: FolderOpen },
-          { name: "Manajemen Regulasi", icon: FileCheck },
-          { name: "Manajemen Alur Pendaftaran", icon: Layers },
-          { name: "CMS Halaman Utama", icon: BookOpen },
-          { name: "CMS Navigasi", icon: Compass },
-          { name: "CMS Pages", icon: FileText }
-        ]
-      case "editor":
-        return [
-          { name: "Dashboard Operasional", icon: Home },
-          { name: "Manajemen Informasi", icon: FileEdit },
-          { name: "Manajemen Pengumuman", icon: Megaphone },
-          { name: "Manajemen Timeline", icon: Calendar },
-          { name: "Manajemen Dokumen File", icon: FolderOpen },
-          { name: "Manajemen Regulasi", icon: FileCheck },
-          { name: "Manajemen Kategori File", icon: Tags },
-          { name: "Manajemen Alur Pendaftaran", icon: Layers },
-          { name: "CMS Halaman Utama", icon: BookOpen },
-          { name: "CMS Navigasi", icon: Compass },
-          { name: "CMS Pages", icon: FileText }
-        ]
-      default:
-        return common
-    }
-  }
 
   const renderComingSoon = (title) => {
     return (
@@ -653,7 +762,7 @@ export function DashboardPage() {
 
   const roleBadge = getRoleBadge()
   const RoleIcon = roleBadge.icon
-  const navLinks = getNavLinks()
+  const navGroups = getNavGroups()
 
   return (
     <div className="min-h-screen bg-dark-base text-text-primary relative">
@@ -697,7 +806,7 @@ export function DashboardPage() {
             </div>
 
             {/* Sidebar User Profile Card */}
-            <div className="p-4 mx-4 my-6 bg-dark-base rounded-2xl border border-dark-border flex items-center gap-3">
+            <div className="p-4 mx-4 my-5 bg-dark-base rounded-2xl border border-dark-border flex items-center gap-3">
               <div className="h-10 w-10 rounded-xl bg-accent-cyan/10 border border-accent-cyan/20 flex items-center justify-center font-bold text-accent-cyan font-display shrink-0">
                 {name.charAt(0)}
               </div>
@@ -710,36 +819,73 @@ export function DashboardPage() {
               </div>
             </div>
 
-            {/* Navigation Links */}
-            <nav className="px-4 space-y-1.5 overflow-y-auto max-h-[55vh]">
-              {navLinks.map((link) => {
-                const LinkIcon = link.icon
-                const isActive = activeTab === link.name
+            {/* Grouped Navigation Links */}
+            <nav className="px-3.5 space-y-2.5 overflow-y-auto max-h-[calc(100vh-270px)] pr-1.5 select-none">
+              {navGroups.map((group) => {
+                const isCollapsible = group.collapsible
+                const isExpanded = isCollapsible ? Boolean(expandedGroups[group.label]) : true
+
                 return (
-                  <button
-                    key={link.name}
-                    onClick={() => {
-                      setActiveTab(link.name)
-                      setSidebarOpen(false)
-                    }}
-                    className={`w-full flex items-center justify-between px-4 py-3 rounded-xl text-left text-xs font-bold transition-all duration-200 ${
-                      isActive
-                        ? "bg-accent-cyan text-white shadow-[0_4px_12px_rgba(37,99,235,0.18)]"
-                        : "text-text-secondary hover:bg-dark-base hover:text-text-primary"
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <LinkIcon className={`h-4.5 w-4.5 ${isActive ? "text-white" : "text-text-muted"}`} />
-                      <span>{link.name}</span>
-                    </div>
-                    {link.isUnavailable && (
-                      <span className={`px-1.5 py-0.5 rounded text-[8px] font-bold ${
-                        isActive ? "bg-white/20 text-white" : "bg-amber-50 text-amber-600 border border-amber-100"
-                      }`}>
-                        Soon
-                      </span>
+                  <div key={group.label} className="space-y-1">
+                    {/* Group Section Header */}
+                    {isCollapsible ? (
+                      <button
+                        type="button"
+                        onClick={() => toggleGroup(group.label)}
+                        aria-expanded={isExpanded}
+                        aria-controls={`nav-group-${group.label}`}
+                        className="w-full flex items-center justify-between px-2.5 py-1 text-[10px] font-bold font-display uppercase tracking-wider text-text-muted hover:text-text-primary rounded-lg transition-colors group"
+                      >
+                        <span>{group.label}</span>
+                        {isExpanded ? (
+                          <ChevronDown aria-hidden="true" className="h-3.5 w-3.5 text-text-muted group-hover:text-text-primary transition-transform duration-150" />
+                        ) : (
+                          <ChevronRight aria-hidden="true" className="h-3.5 w-3.5 text-text-muted group-hover:text-text-primary transition-transform duration-150" />
+                        )}
+                      </button>
+                    ) : (
+                      <div className="px-2.5 pt-1 pb-0.5 text-[10px] font-bold font-display uppercase tracking-wider text-text-muted">
+                        {group.label}
+                      </div>
                     )}
-                  </button>
+
+                    {/* Group Child Items */}
+                    {isExpanded && (
+                      <div id={`nav-group-${group.label}`} className="space-y-0.5">
+                        {group.items.map((link) => {
+                          const LinkIcon = link.icon
+                          const isActive = activeTab === link.name
+                          return (
+                            <button
+                              key={link.name}
+                              type="button"
+                              onClick={() => {
+                                setActiveTab(link.name)
+                                setSidebarOpen(false)
+                              }}
+                              className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-left text-xs transition-all duration-150 ${
+                                isActive
+                                  ? "bg-accent-cyan text-white font-bold shadow-[0_4px_12px_rgba(37,99,235,0.18)]"
+                                  : "text-text-secondary hover:bg-dark-base hover:text-text-primary font-medium"
+                              }`}
+                            >
+                              <div className="flex items-center gap-2.5 min-w-0">
+                                <LinkIcon className={`h-4 w-4 shrink-0 ${isActive ? "text-white" : "text-text-muted"}`} />
+                                <span className="truncate">{link.name}</span>
+                              </div>
+                              {link.isUnavailable && (
+                                <span className={`px-1.5 py-0.5 rounded text-[8px] font-bold shrink-0 ${
+                                  isActive ? "bg-white/20 text-white" : "bg-amber-50 text-amber-600 border border-amber-100"
+                                }`}>
+                                  Soon
+                                </span>
+                              )}
+                            </button>
+                          )
+                        })}
+                      </div>
+                    )}
+                  </div>
                 )
               })}
             </nav>
@@ -1265,7 +1411,9 @@ export function DashboardPage() {
                 </div>
               </div>
             </div>
-          ) ) : activeTab === "CMS Halaman Utama" ? (
+          ) ) : activeTab === "Role & Matriks Permission" ? (
+            <RolePermissionManagement showToast={showToast} />
+          ) : activeTab === "CMS Halaman Utama" ? (
             <CmsLandingPage role={role} showToast={showToast} />
           ) : activeTab === "CMS Navigasi" ? (
             <div className="card-surface p-6 md:p-8 bg-white min-h-[60vh] animate-fade-in">
